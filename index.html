@@ -3,71 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE NUMBER: WARFARE -FINAL-</title>
+    <title>THE NUMBER: WARFARE -TACTICAL-</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        :root { --pink: #ff007c; --blue: #00e5ff; --yellow: #fff000; }
-        body { 
-            margin: 0; background: #000; color: white; font-family: 'Arial', sans-serif; 
-            overflow-x: hidden; touch-action: manipulation; user-select: none;
-        }
-        #game-container { display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
+        :root { --pink: #ff007c; --blue: #00e5ff; --yellow: #fff000; --bg: #050505; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: manipulation; user-select: none; }
+        
+        /* ヘッダー・スコア */
+        #header { position: fixed; top: 0; width: 100%; height: 80px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 2px solid var(--pink); z-index: 100; }
+        #score-val { font-size: 2rem; color: var(--yellow); font-weight: bold; }
+        #mps-val { font-size: 0.8rem; color: var(--blue); }
 
-        /* 固定ヘッダー */
-        #header { position: sticky; top: 0; background: rgba(0,0,0,0.95); width: 100%; padding: 15px 0; z-index: 100; border-bottom: 3px solid var(--pink); text-align: center; }
-        #score-val { font-size: 2.8rem; color: var(--yellow); font-weight: 900; text-shadow: 0 0 10px var(--yellow); }
-        #mps-val { font-size: 1rem; color: var(--blue); margin-top: 5px; }
+        /* 右上ランキングボタン */
+        #rank-toggle { position: fixed; top: 15px; right: 15px; background: var(--blue); color: black; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; z-index: 110; cursor: pointer; }
 
-        /* 巨大タップボタン */
-        #core-btn {
-            width: 200px; height: 200px; border-radius: 50%; background: #111;
-            border: 8px solid var(--pink); color: var(--pink); font-size: 2rem; font-weight: bold;
-            box-shadow: 0 0 30px var(--pink); margin: 30px 0; outline: none; cursor: pointer;
-            transition: transform 0.05s; -webkit-tap-highlight-color: transparent;
-        }
+        /* メインエリア（タップボタン） */
+        #main-game { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #core-btn { width: 200px; height: 200px; border-radius: 50%; background: #111; border: 8px solid var(--pink); color: var(--pink); font-size: 1.5rem; font-weight: bold; box-shadow: 0 0 20px var(--pink); cursor: pointer; transition: 0.05s; outline: none; }
         #core-btn:active { transform: scale(0.92); filter: brightness(1.3); }
 
-        /* ランキング */
-        #leaderboard { width: 90%; max-width: 500px; background: #111; border: 1px solid var(--blue); border-radius: 15px; padding: 15px; margin-bottom: 30px; box-sizing: border-box; }
-        .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #222; font-family: monospace; }
-        .rank-item.is-me { background: rgba(255,240,0,0.15); color: var(--yellow); border-radius: 5px; }
-        .attack-btn { background: var(--pink); border: none; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
+        /* モーダル共通スタイル（Ranking/Shop用） */
+        .modal { position: fixed; top: 80px; bottom: 80px; left: 0; right: 0; background: var(--bg); z-index: 90; display: none; overflow-y: auto; padding: 20px; }
+        .modal.active { display: block; }
+        .modal-title { color: var(--blue); border-bottom: 1px solid; margin-bottom: 15px; font-weight: bold; }
 
-        /* ショップエリア：押しやすく大きなボタン */
-        #shop-title { color: var(--blue); font-weight: bold; margin-bottom: 10px; width: 90%; max-width: 500px; }
-        #shop { width: 90%; max-width: 500px; display: grid; grid-template-columns: 1fr; gap: 12px; }
-        .shop-item { 
-            background: #1a1a1a; border: 2px solid #444; padding: 15px; border-radius: 12px; 
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .shop-item.can-buy { border-color: var(--blue); background: #222; box-shadow: 0 0 10px rgba(0,229,255,0.2); }
-        .shop-item.disabled { opacity: 0.4; cursor: not-allowed; }
-        .item-info { text-align: left; }
+        /* ランキング表示 */
+        .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #222; background: #111; margin-bottom: 5px; border-radius: 8px; }
+        .rank-item.is-me { border: 1px solid var(--yellow); color: var(--yellow); }
+        .attack-btn { background: var(--pink); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+
+        /* ショップ表示 */
+        .shop-item { background: #1a1a1a; border: 2px solid #333; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; width: 100%; box-sizing: border-box; }
+        .shop-item.can-buy { border-color: var(--blue); background: #222; }
+        .shop-item:active { transform: scale(0.98); }
         .item-name { font-size: 1.1rem; font-weight: bold; color: var(--blue); display: block; }
-        .item-cost { font-size: 0.9rem; color: var(--yellow); }
-        .item-count { font-size: 1.5rem; font-weight: bold; opacity: 0.7; }
+        .item-cost { color: var(--yellow); font-size: 0.9rem; }
+        .item-count { font-size: 1.5rem; font-weight: bold; opacity: 0.5; }
+
+        /* 下部ショップボタン */
+        #shop-toggle { position: fixed; bottom: 0; width: 100%; height: 60px; background: var(--pink); color: white; border: none; font-size: 1.2rem; font-weight: bold; z-index: 110; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="game-container">
     <div id="header">
         <div id="score-val">0</div>
-        <div id="mps-val">GENERATION: 0 /s</div>
+        <div id="mps-val">GEN: 0 /s</div>
     </div>
 
-    <button id="core-btn">TAP!!</button>
+    <button id="rank-toggle" onclick="toggleModal('rank-modal')">RANKING</button>
 
-    <div id="leaderboard">
-        <div style="font-size: 0.9rem; color: var(--blue); margin-bottom: 10px;">GLOBAL TARGETS (Top 10)</div>
-        <div id="rank-list">Connecting to Network...</div>
+    <div id="main-game">
+        <button id="core-btn">CHARGE</button>
     </div>
 
-    <div id="shop-title">UPGRADES</div>
-    <div id="shop"></div>
-</div>
+    <div id="rank-modal" class="modal">
+        <div class="modal-title">GLOBAL TARGETS</div>
+        <div id="rank-list">Loading...</div>
+    </div>
+
+    <div id="shop-modal" class="modal">
+        <div class="modal-title">UPGRADE SHOP</div>
+        <div id="shop-list"></div>
+    </div>
+
+    <button id="shop-toggle" onclick="toggleModal('shop-modal')">SHOP</button>
 
 <script>
     const firebaseConfig = {
@@ -83,97 +84,88 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 1. アカウントの永続化
-    let myId = localStorage.getItem('warfare_final_v3_id');
-    if (!myId) {
-        myId = "USER-" + Math.random().toString(36).substring(2, 7).toUpperCase();
-        localStorage.setItem('warfare_final_v3_id', myId);
-    }
+    // ID固定
+    let myId = localStorage.getItem('warfare_v4_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+    localStorage.setItem('warfare_v4_id', myId);
 
-    // 2. 施設データ (10種類)
-    const shopData = [
-        { name: "Micro Chip", base: 15, p: 0.2 },
-        { name: "Logic Gate", base: 100, p: 1 },
-        { name: "Data Siphon", base: 500, p: 6 },
+    // 施設
+    const shopItems = [
+        { name: "Nano Link", base: 15, p: 0.2 },
+        { name: "Logic Core", base: 100, p: 1 },
+        { name: "Siphon Driller", base: 500, p: 6 },
         { name: "Cyber Rig", base: 3000, p: 25 },
-        { name: "Mainframe", base: 12000, p: 90 },
-        { name: "Cloud Array", base: 60000, p: 450 },
-        { name: "Neural Net", base: 300000, p: 2100 },
-        { name: "AI Core", base: 1500000, p: 9500 },
-        { name: "Dyson Web", base: 10000000, p: 60000 },
-        { name: "Omega Point", base: 100000000, p: 400000 }
+        { name: "Neural Node", base: 15000, p: 120 },
+        { name: "Titan Server", base: 80000, p: 600 },
+        { name: "Quantum Gate", base: 400000, p: 3200 },
+        { name: "AI Overlord", base: 2000000, p: 15000 }
     ];
 
     let score = 0;
-    let counts = Array(shopData.length).fill(0);
+    let counts = Array(shopItems.length).fill(0);
     let mps = 0;
 
-    // 3. データ読み込み (最初の一回だけ)
+    // 初期読み込み
     db.ref('users/' + myId).once('value', (snap) => {
         const d = snap.val();
-        if (d) {
-            score = d.score || 0;
-            if (d.counts) counts = d.counts;
-        }
+        if (d) { score = d.score || 0; if(d.counts) counts = d.counts; }
         updateMPS();
         renderShop();
     });
 
     function updateMPS() {
-        mps = counts.reduce((acc, c, i) => acc + (c * shopData[i].p), 0);
-        document.getElementById('mps-val').innerText = `GENERATION: ${mps.toFixed(1)} /s`;
+        mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0);
+        document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)} /s`;
     }
 
     function save() {
-        db.ref('users/' + myId).set({
-            score: Math.floor(score),
-            counts: counts,
-            mps: Number(mps.toFixed(1))
-        });
+        db.ref('users/' + myId).set({ score: Math.floor(score), counts: counts, mps: Number(mps.toFixed(1)) });
     }
 
     // タップ
-    document.getElementById('core-btn').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        score += 1 + Math.floor(mps * 0.05); // MPSの5%もタップに追加
+    const handleTap = (e) => {
+        if(e) e.preventDefault();
+        score += 1 + (mps * 0.05);
         updateUI();
-    });
-    // PC用
-    document.getElementById('core-btn').addEventListener('mousedown', () => {
-        score += 1 + Math.floor(mps * 0.05);
-        updateUI();
-    });
+    };
+    document.getElementById('core-btn').addEventListener('touchstart', handleTap);
+    document.getElementById('core-btn').addEventListener('mousedown', handleTap);
+
+    // モーダル切り替え
+    function toggleModal(id) {
+        const target = document.getElementById(id);
+        const isActive = target.classList.contains('active');
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        if (!isActive) target.classList.add('active');
+    }
 
     function buy(i) {
-        const cost = Math.floor(shopData[i].base * Math.pow(1.15, counts[i]));
+        const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i]));
         if (score >= cost) {
             score -= cost;
             counts[i]++;
             updateMPS();
             renderShop();
             updateUI();
-            save(); // 購入時に即セーブ
+            save();
         }
     }
 
     function attack(targetId) {
-        if (score < 100) return alert("Energy too low! (Need 100)");
-        let damage = Math.floor(score * 0.1) * 5; 
-        score -= Math.floor(score * 0.1);
-        
-        db.ref('users/' + targetId + '/score').transaction(s => Math.max(0, (s || 0) - damage));
+        if (score < 100) return alert("Energy too low!");
+        const cost = Math.floor(score * 0.1);
+        score -= cost;
+        db.ref('users/' + targetId + '/score').transaction(s => Math.max(0, (s || 0) - (cost * 4)));
         save();
-        alert(`ATTACK SUCCESS: -${damage} to ${targetId}`);
+        alert(`ATTACKED ${targetId}!`);
     }
 
     function renderShop() {
-        const container = document.getElementById('shop');
-        container.innerHTML = shopData.map((item, i) => {
+        const container = document.getElementById('shop-list');
+        container.innerHTML = shopItems.map((item, i) => {
             const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
-            const canBuy = score >= cost;
             return `
-                <div class="shop-item ${canBuy ? 'can-buy' : 'disabled'}" onclick="buy(${i})">
-                    <div class="item-info">
+                <div class="shop-item ${score >= cost ? 'can-buy' : ''}" onclick="buy(${i})">
+                    <div style="text-align:left">
                         <span class="item-name">${item.name}</span>
                         <span class="item-cost">Cost: ${cost.toLocaleString()}</span>
                     </div>
@@ -187,36 +179,26 @@
         document.getElementById('score-val').innerText = Math.floor(score).toLocaleString();
     }
 
-    // 定期処理
     setInterval(() => {
         score += (mps / 10);
         updateUI();
-        // 買えるようになったか見た目だけ更新
-        const items = document.querySelectorAll('.shop-item');
-        shopData.forEach((item, i) => {
-            const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
-            if (score >= cost) items[i].classList.add('can-buy');
-            else items[i].classList.remove('can-buy');
-        });
+        if(document.getElementById('shop-modal').classList.contains('active')) renderShop();
     }, 100);
 
-    // 10秒に一回自動セーブ
     setInterval(save, 10000);
 
-    // ランキング監視
     db.ref('users').orderByChild('score').limitToLast(10).on('value', (snap) => {
         const list = document.getElementById('rank-list');
         list.innerHTML = "";
         let players = [];
         snap.forEach(c => players.unshift({ id: c.key, ...c.val() }));
-
         players.forEach((p, idx) => {
-            if (p.id === myId) score = p.score; // 攻撃された結果を同期
+            if (p.id === myId) score = p.score;
             const div = document.createElement('div');
             div.className = `rank-item ${p.id === myId ? 'is-me' : ''}`;
             div.innerHTML = `
                 <span>#${idx+1} ${p.id.substring(0,8)}: ${Math.floor(p.score).toLocaleString()}</span>
-                ${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}')">STEAL</button>` : ' (YOU)'}
+                ${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}')">ATTACK</button>` : ' (YOU)'}
             `;
             list.appendChild(div);
         });
