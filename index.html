@@ -3,101 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE NUMBER: WARFARE -BRIGHT-</title>
+    <title>THE NUMBER: WARFARE -HYBRID-</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
+        /* テーマ設定 */
         :root { 
-            --main-bg: #f8faff; 
-            --card-bg: #ffffff;
-            --accent: #007aff; 
-            --attack: #ff3b30; 
-            --score-color: #5856d6; 
-            --text: #2c2c2e;
+            --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; 
+            --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0;
         }
+        [data-theme='dark'] {
+            --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; 
+            --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333;
+        }
+
         body { 
-            margin: 0; background: var(--main-bg); color: var(--text); 
+            margin: 0; background: var(--bg); color: var(--text); 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-            overflow: hidden; touch-action: manipulation; user-select: none; 
+            overflow: hidden; touch-action: manipulation; user-select: none; transition: background 0.3s;
         }
         
-        /* ヘッダー */
         #header { 
             position: fixed; top: 0; width: 100%; height: 100px; 
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px);
+            background: var(--card); opacity: 0.95; backdrop-filter: blur(15px);
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            border-bottom: 1px solid #e0e0e0; z-index: 100; 
+            border-bottom: 1px solid var(--border); z-index: 100; 
         }
-        #score-val { font-size: 2.2rem; color: var(--score-color); font-weight: 800; }
-        #mps-val { font-size: 0.9rem; color: #8e8e93; font-weight: 600; }
+        #score-val { font-size: 2.2rem; color: var(--score); font-weight: 800; }
+        #mps-val { font-size: 0.9rem; color: var(--sub); font-weight: 600; }
 
-        /* 左上：名前と順位 */
-        #user-info {
-            position: fixed; top: 15px; left: 15px; z-index: 110;
-            background: white; padding: 8px 12px; border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee;
-            font-size: 0.8rem; display: flex; flex-direction: column; gap: 3px;
-        }
+        /* 各種ボタン */
+        #user-info { position: fixed; top: 15px; left: 15px; z-index: 110; background: var(--card); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.8rem; }
         #user-name { font-weight: bold; color: var(--accent); cursor: pointer; }
-        #my-rank { font-weight: bold; color: #555; }
+        
+        .top-btn { position: fixed; top: 20px; z-index: 110; border: none; padding: 10px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        #rank-toggle { right: 80px; background: var(--accent); }
+        #theme-toggle { right: 15px; background: #555; }
 
-        /* 右上：ランキングボタン */
-        #rank-toggle { 
-            position: fixed; top: 20px; right: 15px; z-index: 110;
-            background: var(--accent); color: white; border: none; padding: 10px 18px; 
-            border-radius: 20px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,122,255,0.25);
-        }
+        #shop-toggle { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); width: 80%; max-width: 300px; background: var(--score); color: white; border: none; padding: 15px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; z-index: 110; cursor: pointer; }
 
-        /* 下部：ショップボタン */
-        #shop-toggle { 
-            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); 
-            width: 80%; max-width: 300px; background: var(--score-color); color: white; 
-            border: none; padding: 15px; border-radius: 30px; font-size: 1.1rem; font-weight: bold;
-            z-index: 110; cursor: pointer; box-shadow: 0 8px 20px rgba(88,86,214,0.3);
-        }
-
-        /* タップボタン */
+        /* メイン */
         #main-game { height: 100vh; display: flex; align-items: center; justify-content: center; }
-        #core-btn { 
-            width: 220px; height: 220px; border-radius: 50%; background: white; 
-            border: none; color: var(--accent); font-size: 1.6rem; font-weight: 900; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.08); cursor: pointer; transition: 0.1s; outline: none; 
-        }
-        #core-btn:active { transform: scale(0.95); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        #core-btn { width: 220px; height: 220px; border-radius: 50%; background: var(--card); border: none; color: var(--accent); font-size: 1.6rem; font-weight: 900; box-shadow: 0 10px 30px rgba(0,0,0,0.1); cursor: pointer; transition: 0.1s; outline: none; }
+        #core-btn:active { transform: scale(0.95); }
 
         /* モーダル */
-        .modal { 
-            position: fixed; top: 100px; bottom: 0; left: 0; right: 0; 
-            background: var(--main-bg); z-index: 90; display: none; overflow-y: auto; padding: 20px 20px 120px 20px; 
-        }
+        .modal { position: fixed; top: 100px; bottom: 0; left: 0; right: 0; background: var(--bg); z-index: 90; display: none; overflow-y: auto; padding: 20px 20px 120px 20px; }
         .modal.active { display: block; }
-        .modal-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 20px; text-align: center; color: #333; }
+        .modal-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 20px; text-align: center; }
 
-        /* カードデザイン */
-        .card { 
-            background: white; border-radius: 18px; padding: 18px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
-            border: 2px solid transparent; transition: 0.2s; cursor: pointer;
-        }
-        .card.can-buy { border-color: #d1e7ff; background: #fdfeff; }
-        .card.is-me { border-color: var(--accent); background: #f0f7ff; }
+        .card { background: var(--card); border-radius: 18px; padding: 18px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border: 2px solid transparent; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .card.can-buy { border-color: var(--accent); }
+        .card.is-me { border: 2px solid var(--yellow); background: rgba(255, 255, 0, 0.05); }
         
         .item-info { text-align: left; }
-        .item-name { font-size: 1.1rem; font-weight: bold; color: var(--text); display: block; }
-        .item-stats { font-size: 0.8rem; color: #8e8e93; margin-top: 2px; }
-        .item-cost { color: var(--accent); font-weight: bold; font-size: 0.9rem; }
-        .item-count { font-size: 1.8rem; font-weight: 800; color: #eee; }
+        .item-name { font-size: 1.1rem; font-weight: bold; display: block; }
+        .item-stats { font-size: 0.8rem; color: var(--sub); }
+        .item-cost { color: var(--accent); font-weight: bold; }
 
         .attack-btn { background: var(--attack); color: white; border: none; padding: 10px 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
     <div id="header">
         <div id="score-val">0</div>
-        <div id="mps-val">Total Generation: 0 /s</div>
+        <div id="mps-val">GEN: 0 /s</div>
     </div>
 
     <div id="user-info">
@@ -105,11 +76,10 @@
         <div id="my-rank">Rank: --</div>
     </div>
 
-    <button id="rank-toggle" onclick="toggleModal('rank-modal')">RANKING</button>
+    <button id="rank-toggle" class="top-btn" onclick="toggleModal('rank-modal')">🏆</button>
+    <button id="theme-toggle" class="top-btn" onclick="toggleTheme()">🌙</button>
 
-    <div id="main-game">
-        <button id="core-btn">TAP!!</button>
-    </div>
+    <div id="main-game"><button id="core-btn">TAP!!</button></div>
 
     <div id="rank-modal" class="modal">
         <div class="modal-title">Global Ranking</div>
@@ -121,7 +91,7 @@
         <div id="shop-list"></div>
     </div>
 
-    <button id="shop-toggle" onclick="toggleModal('shop-modal')">UPGRADE SHOP</button>
+    <button id="shop-toggle" onclick="toggleModal('shop-modal')">SHOP</button>
 
 <script>
     const firebaseConfig = {
@@ -137,146 +107,123 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let myId = localStorage.getItem('warfare_v6_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
-    localStorage.setItem('warfare_v6_id', myId);
-    
+    let myId = localStorage.getItem('warfare_v7_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+    localStorage.setItem('warfare_v7_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
 
     const shopItems = [
         { name: "Nano Bot", base: 15, p: 0.2 },
         { name: "Logic Core", base: 100, p: 1.0 },
-        { name: "Data Siphon", base: 500, p: 6.0 },
-        { name: "Cyber Rig", base: 3000, p: 28.0 },
-        { name: "Cloud Link", base: 15000, p: 130.0 },
-        { name: "Mega AI", base: 80000, p: 650.0 },
-        { name: "Quantum Chip", base: 450000, p: 3500.0 },
-        { name: "Star Net", base: 2500000, p: 18000.0 }
+        { name: "Data Siphon", base: 500, p: 6.5 },
+        { name: "Cyber Rig", base: 3000, p: 30.0 },
+        { name: "Mainframe", base: 15000, p: 150.0 },
+        { name: "Mega AI", base: 100000, p: 800.0 },
+        { name: "Star Link", base: 1000000, p: 6000.0 }
     ];
 
     let score = 0;
     let counts = Array(shopItems.length).fill(0);
     let mps = 0;
 
-    // 初期データ取得
-    db.ref('users/' + myId).once('value', (snap) => {
+    db.ref('users/' + myId).on('value', (snap) => {
         const d = snap.val();
         if (d) { 
-            score = d.score || 0; 
+            if(d.score > score) score = d.score; // 外部からの更新（攻撃）を反映
             if(d.counts) counts = d.counts;
             if(d.name) displayName = d.name;
         }
-        document.getElementById('user-name').innerText = "Name: " + displayName + " ✎";
+        document.getElementById('user-name').innerText = displayName + " ✎";
         updateMPS();
-        renderShop();
     });
 
+    function toggleTheme() {
+        const b = document.body;
+        const current = b.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        b.setAttribute('data-theme', next);
+        document.getElementById('theme-toggle').innerText = next === 'light' ? '🌙' : '☀️';
+    }
+
     function changeName() {
-        const newName = prompt("新しい名前を入力してください", displayName);
-        if (newName && newName.length < 15) {
-            displayName = newName;
-            localStorage.setItem('warfare_name', displayName);
-            document.getElementById('user-name').innerText = "Name: " + displayName + " ✎";
-            save();
-        }
+        const n = prompt("名前を変更", displayName);
+        if (n && n.length < 15) { displayName = n; localStorage.setItem('warfare_name', n); save(); }
     }
 
     function updateMPS() {
         mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0);
-        document.getElementById('mps-val').innerText = `Total Generation: ${mps.toFixed(1)} /s`;
+        document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)} /s`;
     }
 
     function save() {
-        db.ref('users/' + myId).set({ score: Math.floor(score), counts: counts, mps: Number(mps.toFixed(1)), name: displayName });
+        db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, mps: Number(mps.toFixed(1)), name: displayName });
     }
 
-    const handleTap = (e) => {
-        if(e) e.preventDefault();
-        score += 1 + (mps * 0.05);
-        updateUI();
-    };
-    document.getElementById('core-btn').addEventListener('touchstart', handleTap);
+    const handleTap = (e) => { if(e) e.preventDefault(); score += 1 + (mps * 0.05); updateUI(); };
     document.getElementById('core-btn').addEventListener('mousedown', handleTap);
+    document.getElementById('core-btn').addEventListener('touchstart', handleTap);
 
     function toggleModal(id) {
-        const target = document.getElementById(id);
-        const active = target.classList.contains('active');
+        const t = document.getElementById(id);
+        const active = t.classList.contains('active');
         document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-        if (!active) target.classList.add('active');
+        if (!active) t.classList.add('active');
+        if (id === 'shop-modal') renderShop();
     }
 
     function buy(i) {
         const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i]));
-        if (score >= cost) {
-            score -= cost;
-            counts[i]++;
-            updateMPS();
-            renderShop();
-            updateUI();
-            save();
-        }
+        if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); updateUI(); save(); }
     }
 
     function attack(targetId) {
-        if (score < 100) return alert("Energy too low!");
         const cost = Math.floor(score * 0.1);
+        if (cost < 50) return alert("Energy too low!");
         score -= cost;
         db.ref('users/' + targetId + '/score').transaction(s => Math.max(0, (s || 0) - (cost * 4)));
         save();
-        alert("Attack successful!");
     }
 
     function renderShop() {
         const container = document.getElementById('shop-list');
         container.innerHTML = shopItems.map((item, i) => {
             const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
-            return `
-                <div class="card ${score >= cost ? 'can-buy' : ''}" onclick="buy(${i})">
-                    <div class="item-info">
-                        <span class="item-name">${item.name}</span>
-                        <div class="item-stats">+${item.p}/s | <span class="item-cost">Cost: ${cost.toLocaleString()}</span></div>
-                    </div>
-                    <div class="item-count">${counts[i]}</div>
+            return `<div class="card ${score >= cost ? 'can-buy' : ''}" onclick="buy(${i})">
+                <div class="item-info">
+                    <span class="item-name">${item.name} (Lv.${counts[i]})</span>
+                    <div class="item-stats">+${item.p}/s | <span class="item-cost">Cost: ${cost.toLocaleString()}</span></div>
                 </div>
-            `;
+            </div>`;
         }).join('');
     }
 
-    function updateUI() {
-        document.getElementById('score-val').innerText = Math.floor(score).toLocaleString();
-    }
+    function updateUI() { document.getElementById('score-val').innerText = Math.floor(score).toLocaleString(); }
 
-    setInterval(() => {
-        score += (mps / 10);
-        updateUI();
-        if(document.getElementById('shop-modal').classList.contains('active')) renderShop();
-    }, 100);
+    setInterval(() => { score += (mps / 10); updateUI(); }, 100);
+    setInterval(save, 8000);
 
-    setInterval(save, 10000);
-
-    // 全ユーザーデータを取得してランキング更新
+    // ランキングロジック改良
     db.ref('users').orderByChild('score').on('value', (snap) => {
-        const list = document.getElementById('rank-list');
-        list.innerHTML = "";
         let players = [];
         snap.forEach(c => players.unshift({ id: c.key, ...c.val() }));
+        const myRank = players.findIndex(p => p.id === myId) + 1;
+        document.getElementById('my-rank').innerText = "Rank: " + (myRank || "--");
 
-        // 自分の順位を見つける
-        const myRankIdx = players.findIndex(p => p.id === myId) + 1;
-        document.getElementById('my-rank').innerText = "Rank: " + (myRankIdx || "--");
+        const list = document.getElementById('rank-list');
+        list.innerHTML = "";
+        
+        // トップ10 + 自分を表示
+        let displayPlayers = players.slice(0, 10);
+        if (myRank > 10) displayPlayers.push(players[myRank - 1]);
 
-        // 上位10名を表示
-        players.slice(0, 10).forEach((p, idx) => {
-            if (p.id === myId) score = p.score;
+        displayPlayers.forEach((p, idx) => {
+            const actualRank = players.findIndex(orig => orig.id === p.id) + 1;
             const div = document.createElement('div');
             div.className = `card ${p.id === myId ? 'is-me' : ''}`;
-            div.style.cursor = "default";
-            div.innerHTML = `
-                <div class="item-info">
-                    <span class="item-name">#${idx+1} ${p.name || p.id.substring(0,8)}</span>
-                    <div class="item-stats">Score: ${Math.floor(p.score).toLocaleString()}</div>
-                </div>
-                ${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}')">ATTACK</button>` : '<span>(YOU)</span>'}
-            `;
+            div.innerHTML = `<div class="item-info">
+                <span class="item-name">#${actualRank} ${p.name || p.id}</span>
+                <div class="item-stats">Score: ${Math.floor(p.score).toLocaleString()}</div>
+            </div>
+            ${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}')">ATK</button>` : '<span>(YOU)</span>'}`;
             list.appendChild(div);
         });
     });
