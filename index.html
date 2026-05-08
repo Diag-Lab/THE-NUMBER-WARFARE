@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THE NUMBER: WARFARE</title>
     
-    <meta name="description" content="リアルタイムでランキングが変動する放置型クリック戦争。施設を強化して稼ぎ、500スコア貯めてライバルを攻撃せよ！掲示板で交流しながら1位を目指すオンライン対戦ゲーム。">
+    <meta name="description" content="[JP] 資産を削り、ライバルを叩け。リアルタイム放置型クリック戦争。[EN] Sacrifice your score to crush rivals. Real-time incremental warfare game.">
     
     <link rel="icon" href="1778230381094.png" type="image/png">
     
@@ -21,38 +21,30 @@
             --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333;
         }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
         #game-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         #header { position: absolute; top: 0; width: 100%; height: 90px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.95; }
         #score-val { font-size: 2rem; color: var(--score); font-weight: 800; }
-        
         .top-btn { position: absolute; top: 15px; z-index: 20; border: none; padding: 8px 12px; border-radius: 15px; cursor: pointer; color: white; font-weight: bold; }
         #rank-toggle { right: 70px; background: var(--accent); }
         #theme-toggle { right: 10px; background: #555; }
         #user-info { position: absolute; top: 10px; left: 10px; z-index: 20; background: var(--card); padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.7rem; }
-
         #core-btn { width: 160px; height: 160px; border-radius: 50%; background: var(--card); border: 6px solid var(--accent); color: var(--accent); font-size: 1.4rem; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.1); outline: none; }
         #core-btn:active { transform: scale(0.95); }
-
         #bbs-container { height: 30vh; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 30; }
         #bbs-header { padding: 8px; font-size: 0.8rem; font-weight: bold; border-bottom: 1px solid var(--border); background: var(--bg); display: flex; justify-content: space-between; }
         #bbs-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 0.9rem; }
         .msg { margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
         .msg-name { font-weight: bold; color: var(--accent); font-size: 0.75rem; }
-
         #bbs-input-area { padding: 10px; display: flex; gap: 5px; border-top: 1px solid var(--border); }
         #bbs-input { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid var(--border); outline: none; background: var(--bg); color: var(--text); }
         #bbs-send { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; }
-
         .modal { position: fixed; top: 90px; bottom: 30vh; left: 0; right: 0; background: var(--bg); z-index: 100; display: none; overflow-y: auto; padding: 20px; }
         .modal.active { display: block; }
-
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); transition: 0.2s; }
-        .card.can-buy { border-color: var(--accent); cursor: pointer; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1); }
+        .card.can-buy { border-color: var(--accent); cursor: pointer; }
         .card.disabled { opacity: 0.4; filter: grayscale(0.8); cursor: not-allowed; }
         .item-price { font-weight: bold; color: var(--accent); }
-
-        .attack-btn { background: var(--attack); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; }
+        .attack-btn { background: var(--attack); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
         #shop-toggle { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 60%; background: var(--score); color: white; border: none; padding: 12px; border-radius: 25px; font-weight: bold; z-index: 15; cursor: pointer; }
     </style>
 </head>
@@ -63,39 +55,61 @@
             <div id="score-val">0</div>
             <div id="mps-val" style="font-size: 0.8rem; color: var(--sub);">GEN: 0/s</div>
         </div>
-
         <div id="user-info">
-            <span id="user-name" onclick="changeName()" style="font-weight:bold; color:var(--accent); cursor:pointer;">Loading... ✎</span>
+            <span id="user-name" onclick="changeName()" style="font-weight:bold; color:var(--accent); cursor:pointer;">Loading...</span>
             <div id="my-rank">Rank: --</div>
         </div>
-
         <button id="rank-toggle" class="top-btn" onclick="toggleModal('rank-modal')">🏆</button>
         <button id="theme-toggle" class="top-btn" onclick="toggleTheme()">🌙</button>
-
         <button id="core-btn">TAP!!</button>
         <button id="shop-toggle" onclick="toggleModal('shop-modal')">UPGRADE SHOP</button>
     </div>
 
     <div id="bbs-container">
-        <div id="bbs-header"><span>LIVE CHAT</span><span style="font-size:0.7rem; color:var(--sub);">自由掲示板</span></div>
+        <div id="bbs-header"><span id="txt-bbs-label">LIVE CHAT</span><span style="font-size:0.7rem; color:var(--sub);" id="txt-bbs-sub">Public Channel</span></div>
         <div id="bbs-messages"></div>
         <div id="bbs-input-area">
-            <input type="text" id="bbs-input" placeholder="メッセージ..." maxlength="50">
-            <button id="bbs-send" onclick="sendMsg()">送信</button>
+            <input type="text" id="bbs-input" placeholder="..." maxlength="50">
+            <button id="bbs-send" onclick="sendMsg()">Send</button>
         </div>
     </div>
 
     <div id="rank-modal" class="modal">
-        <h2 style="text-align:center">Top 10 Rankings</h2>
+        <h2 style="text-align:center" id="txt-rank-title">Top 10 Rankings</h2>
         <div id="rank-list"></div>
     </div>
 
     <div id="shop-modal" class="modal">
-        <h2 style="text-align:center">Shop</h2>
+        <h2 style="text-align:center" id="txt-shop-title">Shop</h2>
         <div id="shop-list"></div>
     </div>
 
 <script>
+    // --- Multilingual Data ---
+    const lang = (navigator.language || navigator.userLanguage).startsWith('ja') ? 'ja' : 'en';
+    const ui = {
+        ja: {
+            shop: "アップグレード", rank: "ランキング上位10名", namePrompt: "名前を入力", 
+            atkConfirm: "【警告】資産の50%を失い、相手に壊滅的なダメージを与えます。よろしいですか？",
+            atkLog: "が全精力を込めた攻撃を放ちました！", atkSelf: "一撃必殺！ダメージを与えました！",
+            send: "送信", placeholder: "メッセージ..."
+        },
+        en: {
+            shop: "UPGRADE SHOP", rank: "Top 10 Rankings", namePrompt: "Enter your name", 
+            atkConfirm: "[WARNING] Lose 50% of your score to deal devastating damage. Proceed?",
+            atkLog: " unleashed a devastating strike!", atkSelf: "Critical Hit! Damage dealt!",
+            send: "Send", placeholder: "Message..."
+        }
+    }[lang];
+
+    // Apply basic UI
+    document.getElementById('shop-toggle').innerText = ui.shop;
+    document.getElementById('txt-rank-title').innerText = ui.rank;
+    document.getElementById('txt-shop-title').innerText = "Shop";
+    document.getElementById('bbs-send').innerText = ui.send;
+    document.getElementById('bbs-input').placeholder = ui.placeholder;
+
+    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyAYnC_bHIPYElG8zjbL-7vEIH4rWSA7hbw",
         authDomain: "my-warfare-game-fa3db.firebaseapp.com",
@@ -163,7 +177,7 @@
     }
 
     function changeName() {
-        const n = prompt("名前を入力", displayName);
+        const n = prompt(ui.namePrompt, displayName);
         if (n) { displayName = n; localStorage.setItem('warfare_name', n); save(); }
     }
 
@@ -221,26 +235,37 @@
         snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
         const list = document.getElementById('rank-list');
         list.innerHTML = "";
-        
         const myRankIdx = players.findIndex(p => p.id === myId);
         document.getElementById('my-rank').innerText = "Rank: " + (myRankIdx !== -1 ? myRankIdx + 1 : "10+");
-
         players.forEach((p, idx) => {
             const div = document.createElement('div');
             div.className = `card ${p.id === myId ? 'is-me' : ''}`;
             div.innerHTML = `<div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score || 0).toLocaleString()}</small></div>
-            ${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}')">ATK</button>` : '<span>(YOU)</span>'}`;
+            ${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}', '${p.name || p.id}')">ATK</button>` : '<span>(YOU)</span>'}`;
             list.appendChild(div);
         });
     });
 
-    function attack(tid) {
-        if (score < 500) return alert("500スコア必要です！");
-        const cost = Math.floor(score * 0.1);
-        score -= cost;
-        db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - (cost * 10)));
+    function attack(tid, tname) {
+        if (score < 500) return alert("Score > 500 required.");
+        if (!confirm(ui.atkConfirm)) return;
+
+        const loss = Math.floor(score / 2);
+        const power = Math.floor(loss * (2 / 3));
+        const damage = power * 10;
+
+        score -= loss;
+        db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
+
+        db.ref('messages').push({ 
+            name: "⚠️SYSTEM", 
+            text: `${displayName} ${ui.atkLog} (Target: ${tname})`, 
+            time: Date.now() 
+        });
+
         save();
-        alert("CRITICAL HIT!");
+        updateUI();
+        alert(ui.atkSelf);
     }
 
     document.getElementById('bbs-input').onkeypress = (e) => { if (e.key === 'Enter') sendMsg(); };
