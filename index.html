@@ -4,90 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THE NUMBER: WARFARE</title>
-    <meta name="description" content="Sacrifice your score to crush rivals. Real-time incremental warfare game.">
-    <link rel="icon" href="1778230381094.png" type="image/png">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         :root { --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0; }
         [data-theme='dark'] { --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #game-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; z-index: 5; }
-        #header { position: absolute; top: 0; width: 100%; height: 90px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.95; }
+        #game-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; z-index: 5; }
+        #header { position: absolute; top: 0; width: 100%; height: 80px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #score-val { font-size: 2rem; color: var(--score); font-weight: 800; }
         .top-btn { position: absolute; top: 15px; z-index: 20; border: none; padding: 8px 12px; border-radius: 15px; cursor: pointer; color: white; font-weight: bold; }
         #rank-toggle { right: 70px; background: var(--accent); }
         #theme-toggle { right: 10px; background: #555; }
-        #user-info { position: absolute; top: 10px; left: 10px; z-index: 20; background: var(--card); padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.7rem; }
-        #core-btn { width: 160px; height: 160px; border-radius: 50%; background: var(--card); border: 6px solid var(--accent); color: var(--accent); font-size: 1.4rem; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.1); outline: none; }
+        #user-info { position: absolute; top: 10px; left: 10px; z-index: 20; background: var(--card); padding: 4px 8px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.7rem; }
+        #core-btn { width: 150px; height: 150px; border-radius: 50%; background: var(--card); border: 6px solid var(--accent); color: var(--accent); font-size: 1.4rem; font-weight: 900; cursor: pointer; outline: none; }
         #core-btn:active { transform: scale(0.95); }
-        #bbs-container { height: 30vh; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 30; }
-        #bbs-header { padding: 8px; font-size: 0.8rem; font-weight: bold; border-bottom: 1px solid var(--border); background: var(--bg); display: flex; justify-content: space-between; }
-        #bbs-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 0.9rem; }
-        .msg { margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-        .msg-name { font-weight: bold; color: var(--accent); font-size: 0.75rem; }
-        #bbs-input-area { padding: 10px; display: flex; gap: 5px; border-top: 1px solid var(--border); }
-        #bbs-input { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid var(--border); outline: none; background: var(--bg); color: var(--text); }
-        #bbs-send { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; }
-        .modal { position: fixed; top: 0; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        
+        /* チャットエリアの修正 */
+        #bbs-container { height: 35vh; background: var(--card); border-top: 2px solid var(--border); display: flex; flex-direction: column; z-index: 50; position: relative; }
+        #bbs-header { padding: 8px; font-size: 0.8rem; font-weight: bold; background: var(--bg); border-bottom: 1px solid var(--border); }
+        #bbs-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 0.9rem; -webkit-overflow-scrolling: touch; }
+        #bbs-input-area { padding: 10px; display: flex; gap: 8px; background: var(--card); border-top: 1px solid var(--border); }
+        #bbs-input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; font-size: 16px; /* iOSのズーム防止 */ }
+        #bbs-send { background: var(--accent); color: white; border: none; padding: 0 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-content { background: var(--bg); width: 90%; max-width: 500px; height: 70vh; border-radius: 20px; overflow-y: auto; padding: 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .close-btn { position: sticky; top: 0; float: right; background: #888; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: bold; z-index: 1010; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); }
-        .card.can-buy { border-color: var(--accent); cursor: pointer; }
-        .card.disabled { opacity: 0.4; filter: grayscale(0.8); cursor: not-allowed; }
+        .modal-content { background: var(--bg); width: 90%; max-width: 450px; height: 60vh; border-radius: 20px; padding: 20px; overflow-y: auto; position: relative; }
+        .close-btn { position: sticky; top: 0; float: right; background: #888; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; }
+        .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
         .item-price { font-weight: bold; color: var(--accent); }
-        .attack-btn { background: var(--attack); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
-        .attack-btn.cd { background: #555 !important; opacity: 0.6; cursor: not-allowed; }
-        #shop-toggle { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 60%; background: var(--score); color: white; border: none; padding: 12px; border-radius: 25px; font-weight: bold; z-index: 15; cursor: pointer; }
+        .attack-btn { background: var(--attack); color: white; border: none; padding: 8px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .attack-btn.cd { background: #555 !important; opacity: 0.6; }
+        #shop-toggle { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 70%; background: var(--score); color: white; border: none; padding: 12px; border-radius: 25px; font-weight: bold; z-index: 15; }
     </style>
 </head>
 <body data-theme="light">
     <div id="game-container">
-        <div id="header"><div id="score-val">0</div><div id="mps-val" style="font-size: 0.8rem; color: var(--sub);">GEN: 0/s</div></div>
-        <div id="user-info"><span id="user-name" onclick="changeName()" style="font-weight:bold; color:var(--accent); cursor:pointer;">Loading...</span><div id="my-rank">Rank: --</div></div>
+        <div id="header"><div id="score-val">0</div><div id="mps-val" style="font-size: 0.7rem; color: var(--sub);">0/s</div></div>
+        <div id="user-info"><span id="user-name" onclick="changeName()">Loading...</span><div id="my-rank">Rank: --</div></div>
         <button id="rank-toggle" class="top-btn" onclick="toggleModal('rank-modal')">🏆</button>
         <button id="theme-toggle" class="top-btn" onclick="toggleTheme()">🌙</button>
         <button id="core-btn">TAP!!</button>
         <button id="shop-toggle" onclick="toggleModal('shop-modal')">UPGRADE SHOP</button>
     </div>
     <div id="bbs-container">
-        <div id="bbs-header"><span>LIVE CHAT</span><span style="font-size:0.7rem; color:var(--sub);">Public Channel</span></div>
+        <div id="bbs-header">LIVE CHAT</div>
         <div id="bbs-messages"></div>
-        <div id="bbs-input-area"><input type="text" id="bbs-input" placeholder="..." maxlength="50"><button id="bbs-send" onclick="sendMsg()">Send</button></div>
+        <div id="bbs-input-area">
+            <input type="text" id="bbs-input" placeholder="Message..." maxlength="50">
+            <button id="bbs-send" onclick="sendMsg()">Send</button>
+        </div>
     </div>
 
-    <div id="rank-modal" class="modal" onclick="closeModals(event)">
+    <div id="rank-modal" class="modal" onclick="this.classList.remove('active')">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-btn" onclick="document.getElementById('rank-modal').classList.remove('active')">×</button>
-            <h2 style="text-align:center" id="txt-rank-title">Top 10 Rankings</h2>
+            <h3 style="text-align:center">Top 10</h3>
             <div id="rank-list"></div>
         </div>
     </div>
 
-    <div id="shop-modal" class="modal" onclick="closeModals(event)">
+    <div id="shop-modal" class="modal" onclick="this.classList.remove('active')">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-btn" onclick="document.getElementById('shop-modal').classList.remove('active')">×</button>
-            <h2 style="text-align:center">Upgrade Shop</h2>
+            <h3 style="text-align:center">Shop</h3>
             <div id="shop-list"></div>
         </div>
     </div>
 
 <script>
-    const lang = (navigator.language || navigator.userLanguage).startsWith('ja') ? 'ja' : 'en';
-    const ui = {
-        ja: { shop: "アップグレード", rank: "ランキング上位10名", namePrompt: "名前を入力", atkConfirm: "【警告】資産の50%を失い、相手に20倍のダメージを与えます。よろしいですか？", atkLog: "が禁断の一撃（20倍）を放ちました！", atkSelf: "ダメージを与えました！", send: "送信", placeholder: "メッセージ..." },
-        en: { shop: "UPGRADE SHOP", rank: "Top 10 Rankings", namePrompt: "Enter name", atkConfirm: "[WARNING] Lose 50% for 20x Strike. Proceed?", atkLog: " unleashed a 20x strike!", atkSelf: "Damage dealt!", send: "Send", placeholder: "Message..." }
-    }[lang];
-
-    let lastAttackTime = 0, COOLDOWN_MS = 25000;
+    // --- 初期設定 ---
     const firebaseConfig = { apiKey: "AIzaSyAYnC_bHIPYElG8zjbL-7vEIH4rWSA7hbw", authDomain: "my-warfare-game-fa3db.firebaseapp.com", databaseURL: "https://my-warfare-game-fa3db-default-rtdb.firebaseio.com", projectId: "my-warfare-game-fa3db", storageBucket: "my-warfare-game-fa3db.firebasestorage.app", messagingSenderId: "408551026184", appId: "1:408551026184:web:85e80b61c8110ce3d6abbd" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // --- 不適切な言葉のリスト (ここに追加できます) ---
+    const badWords = ["死ね", "殺す", "バカ", "あほ", "ゴミ", "カス", "fuck", "shit", "die"];
+
     let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
     localStorage.setItem('warfare_v14_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
+    let lastAttackTime = 0, COOLDOWN_MS = 25000;
 
     const shopItems = [
         { name: "Nano Bot", base: 15, p: 0.2 }, { name: "Logic Core", base: 100, p: 1.0 }, { name: "Siphon", base: 500, p: 8.0 }, { name: "Cyber Rig", base: 3000, p: 40.0 }, { name: "Mainframe", base: 15000, p: 200.0 }, { name: "Mega AI", base: 100000, p: 1500.0 }, { name: "Quantum Net", base: 800000, p: 9000.0 }, { name: "Neural Cloud", base: 5000000, p: 60000.0 }, { name: "Data Citadel", base: 30000000, p: 400000.0 }, { name: "Orbital Relay", base: 200000000, p: 2500000.0 }, { name: "Galaxy Server", base: 1500000000, p: 18000000.0 }, { name: "Time Sphere", base: 10000000000, p: 120000000.0 }, { name: "Void Gate", base: 75000000000, p: 900000000.0 }, { name: "Star Core", base: 500000000000, p: 7000000000.0 }, { name: "Reality Engine", base: 4000000000000, p: 55000000000.0 }, { name: "Cosmic Singularity", base: 30000000000000, p: 450000000000.0 }
@@ -95,54 +93,51 @@
 
     let score = 0, counts = Array(shopItems.length).fill(0), mps = 0;
 
+    // --- ロジック ---
     db.ref('users/' + myId).on('value', (snap) => {
         const d = snap.val();
-        if (d) { 
-            score = d.score || 0;
-            if(d.counts) counts = shopItems.map((_, i) => d.counts[i] || 0);
-            displayName = d.name || displayName;
-            updateUI();
-        }
+        if (d) { score = d.score || 0; if(d.counts) counts = shopItems.map((_, i) => d.counts[i] || 0); displayName = d.name || displayName; updateUI(); }
         document.getElementById('user-name').innerText = displayName + " ✎";
         updateMPS();
     });
 
+    function sendMsg() {
+        const input = document.getElementById('bbs-input');
+        let text = input.value.trim();
+        if (!text) return;
+
+        // NGワードチェック
+        const isBad = badWords.some(word => text.toLowerCase().includes(word));
+        if (isBad) {
+            alert("不適切な言葉が含まれているため送信できません。");
+            input.value = "";
+            return;
+        }
+
+        db.ref('messages').push({ name: displayName, text: text, time: Date.now() });
+        input.value = "";
+    }
+
+    db.ref('messages').limitToLast(20).on('value', (snap) => {
+        const container = document.getElementById('bbs-messages');
+        container.innerHTML = "";
+        snap.forEach(c => {
+            const m = c.val();
+            container.innerHTML += `<div class="msg"><span class="msg-name">${m.name}:</span> <span>${m.text}</span></div>`;
+        });
+        container.scrollTop = container.scrollHeight;
+    });
+
     function save() { db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, mps: Number(mps.toFixed(1)), name: displayName }); }
-    function sendMsg() { const input = document.getElementById('bbs-input'); if (!input.value.trim()) return; db.ref('messages').push({ name: displayName, text: input.value.trim(), time: Date.now() }); input.value = ""; }
-    db.ref('messages').limitToLast(20).on('value', (snap) => { const container = document.getElementById('bbs-messages'); container.innerHTML = ""; snap.forEach(c => { const m = c.val(); container.innerHTML += `<div class="msg"><span class="msg-name">${m.name}:</span><span class="msg-text">${m.text}</span></div>`; }); container.scrollTop = container.scrollHeight; });
-    function toggleTheme() { const b = document.body; const next = b.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; b.setAttribute('data-theme', next); document.getElementById('theme-toggle').innerText = next === 'light' ? '🌙' : '☀️'; }
-    function changeName() { const n = prompt(ui.namePrompt, displayName); if (n) { displayName = n; localStorage.setItem('warfare_name', n); save(); } }
-    function updateMPS() { mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0); document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)}/s`; }
-    document.getElementById('core-btn').onclick = () => { score += 1 + (mps * 0.05); updateUI(); };
-    
-    function toggleModal(id) {
-        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        if (id === 'shop-modal') renderShop();
-    }
-
-    function closeModals(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
-
-    function buy(i) {
-        const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i]));
-        if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); }
-    }
-
-    function renderShop() {
-        const container = document.getElementById('shop-list');
-        container.innerHTML = shopItems.map((item, i) => {
-            const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
-            return `<div class="card ${score >= cost ? 'can-buy' : 'disabled'}" onclick="buy(${i})">
-                <div style="text-align:left"><b>${item.name} (Lv.${counts[i]})</b><br><small>+${item.p}/s</small></div>
-                <div class="item-price">${cost.toLocaleString()}</div>
-            </div>`;
-        }).join('');
-    }
-
+    function updateMPS() { mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0); document.getElementById('mps-val').innerText = `${mps.toFixed(1)}/s`; }
     function updateUI() { document.getElementById('score-val').innerText = Math.floor(score).toLocaleString(); }
-    setInterval(() => { score += (mps / 10); updateUI(); }, 100);
-    setInterval(save, 5000);
-
+    function toggleTheme() { const b = document.body; const next = b.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; b.setAttribute('data-theme', next); document.getElementById('theme-toggle').innerText = next === 'light' ? '🌙' : '☀️'; }
+    function changeName() { const n = prompt("Name?", displayName); if (n) { displayName = n; localStorage.setItem('warfare_name', n); save(); } }
+    document.getElementById('core-btn').onclick = () => { score += 1 + (mps * 0.05); updateUI(); };
+    function toggleModal(id) { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); document.getElementById(id).classList.add('active'); if (id === 'shop-modal') renderShop(); }
+    function buy(i) { const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i])); if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); } }
+    function renderShop() { const container = document.getElementById('shop-list'); container.innerHTML = shopItems.map((item, i) => { const cost = Math.floor(item.base * Math.pow(1.15, counts[i])); return `<div class="card ${score >= cost ? 'can-buy' : 'disabled'}" onclick="buy(${i})"><div><b>${item.name}</b> (Lv.${counts[i]})<br><small>+${item.p}/s</small></div><div class="item-price">${cost.toLocaleString()}</div></div>`; }).join(''); }
+    
     function updateRankList() {
         db.ref('users').orderByChild('score').limitToLast(10).once('value', (snap) => {
             let players = []; snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
@@ -157,20 +152,24 @@
             });
         });
     }
-    db.ref('users').orderByChild('score').limitToLast(10).on('value', updateRankList);
-    setInterval(() => { if(document.querySelector('.modal.active')) updateRankList(); }, 1000);
 
     function attack(tid, tname) {
         const now = Date.now(); if (now - lastAttackTime < COOLDOWN_MS) return;
         if (score < 500) return alert("Score > 500 required.");
-        if (!confirm(ui.atkConfirm)) return;
+        if (!confirm("攻撃しますか？(資産50%消費)")) return;
         lastAttackTime = now; const loss = Math.floor(score / 2), damage = Math.floor(loss * (2 / 3)) * 20;
         score -= loss; updateUI();
         db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
-        db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} ${ui.atkLog} (Target: ${tname})`, time: Date.now() });
-        save(); alert(ui.atkSelf); updateRankList();
+        db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} が ${tname} に20倍ダメージ！`, time: Date.now() });
+        save(); updateRankList();
     }
+
+    db.ref('users').orderByChild('score').limitToLast(10).on('value', updateRankList);
+    setInterval(() => { score += (mps / 10); updateUI(); }, 100);
+    setInterval(save, 5000);
+    setInterval(() => { if(document.querySelector('.modal.active')) updateRankList(); }, 1000);
     document.getElementById('bbs-input').onkeypress = (e) => { if (e.key === 'Enter') sendMsg(); };
 </script>
 </body>
 </html>
+
