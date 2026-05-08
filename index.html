@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE NUMBER: WARFARE -VISUAL SHOP-</title>
+    <title>THE NUMBER: WARFARE</title>
+    
+    <meta name="description" content="リアルタイムでランキングが変動する放置型クリック戦争。施設を強化して稼ぎ、500スコア貯めてライバルを攻撃せよ！掲示板で交流しながら1位を目指すオンライン対戦ゲーム。">
+    
+    <link rel="icon" href="1778230381094.png" type="image/png">
+    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -39,22 +44,13 @@
         #bbs-input { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid var(--border); outline: none; background: var(--bg); color: var(--text); }
         #bbs-send { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; }
 
-        /* モーダル共通 */
         .modal { position: fixed; top: 90px; bottom: 30vh; left: 0; right: 0; background: var(--bg); z-index: 100; display: none; overflow-y: auto; padding: 20px; }
         .modal.active { display: block; }
 
-        /* ショップカードの視覚効果 */
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); transition: 0.2s; }
-        
-        /* 買える時のスタイル */
-        .card.can-buy { border-color: var(--accent); cursor: pointer; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1); opacity: 1; }
-        .card.can-buy:active { transform: scale(0.98); }
-        
-        /* 買えない時のスタイル */
-        .card.disabled { opacity: 0.4; filter: grayscale(0.8); cursor: not-allowed; border-color: var(--border); }
-        
+        .card.can-buy { border-color: var(--accent); cursor: pointer; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1); }
+        .card.disabled { opacity: 0.4; filter: grayscale(0.8); cursor: not-allowed; }
         .item-price { font-weight: bold; color: var(--accent); }
-        .disabled .item-price { color: var(--sub); }
 
         .attack-btn { background: var(--attack); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; }
         #shop-toggle { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 60%; background: var(--score); color: white; border: none; padding: 12px; border-radius: 25px; font-weight: bold; z-index: 15; cursor: pointer; }
@@ -90,7 +86,7 @@
     </div>
 
     <div id="rank-modal" class="modal">
-        <h2 style="text-align:center">Ranking</h2>
+        <h2 style="text-align:center">Top 10 Rankings</h2>
         <div id="rank-list"></div>
     </div>
 
@@ -112,8 +108,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let myId = localStorage.getItem('warfare_v13_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
-    localStorage.setItem('warfare_v13_id', myId);
+    let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+    localStorage.setItem('warfare_v14_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
 
     const shopItems = [
@@ -188,13 +184,7 @@
 
     function buy(i) {
         const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i]));
-        if (score >= cost) { 
-            score -= cost; 
-            counts[i]++; 
-            updateMPS(); 
-            renderShop(); // 購入後に即時再描画
-            save(); 
-        }
+        if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); }
     }
 
     function renderShop() {
@@ -204,8 +194,7 @@
             const canBuy = score >= cost;
             return `<div class="card ${canBuy ? 'can-buy' : 'disabled'}" onclick="buy(${i})">
                 <div style="text-align:left">
-                    <b style="display:block">${item.name} (Lv.${counts[i]})</b>
-                    <small>+${item.p}/s</small>
+                    <b>${item.name} (Lv.${counts[i]})</b><br><small>+${item.p}/s</small>
                 </div>
                 <div class="item-price">${cost.toLocaleString()}</div>
             </div>`;
@@ -214,18 +203,12 @@
 
     function updateUI() { 
         document.getElementById('score-val').innerText = Math.floor(score).toLocaleString();
-        // ショップが開いている間は「買える・買えない」をリアルタイム更新
         if (document.getElementById('shop-modal').classList.contains('active')) {
             const cards = document.querySelectorAll('#shop-list .card');
             shopItems.forEach((item, i) => {
                 const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
-                if (score >= cost) {
-                    cards[i].classList.add('can-buy');
-                    cards[i].classList.remove('disabled');
-                } else {
-                    cards[i].classList.remove('can-buy');
-                    cards[i].classList.add('disabled');
-                }
+                if (score >= cost) { cards[i].classList.add('can-buy'); cards[i].classList.remove('disabled'); }
+                else { cards[i].classList.remove('can-buy'); cards[i].classList.add('disabled'); }
             });
         }
     }
@@ -233,14 +216,16 @@
     setInterval(() => { score += (mps / 10); updateUI(); }, 100);
     setInterval(save, 5000);
 
-    db.ref('users').orderByChild('score').on('value', (snap) => {
+    db.ref('users').orderByChild('score').limitToLast(10).on('value', (snap) => {
         let players = [];
         snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
         const list = document.getElementById('rank-list');
         list.innerHTML = "";
+        
         const myRankIdx = players.findIndex(p => p.id === myId);
-        document.getElementById('my-rank').innerText = "Rank: " + (myRankIdx + 1 || "--");
-        players.slice(0, 15).forEach((p, idx) => {
+        document.getElementById('my-rank').innerText = "Rank: " + (myRankIdx !== -1 ? myRankIdx + 1 : "10+");
+
+        players.forEach((p, idx) => {
             const div = document.createElement('div');
             div.className = `card ${p.id === myId ? 'is-me' : ''}`;
             div.innerHTML = `<div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score || 0).toLocaleString()}</small></div>
@@ -255,9 +240,11 @@
         score -= cost;
         db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - (cost * 10)));
         save();
+        alert("CRITICAL HIT!");
     }
 
     document.getElementById('bbs-input').onkeypress = (e) => { if (e.key === 'Enter') sendMsg(); };
 </script>
 </body>
 </html>
+
