@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THE NUMBER: WARFARE</title>
-    <meta name="description" content="[JP] 資産を削り、ライバルを叩け。リアルタイム放置型クリック戦争。[EN] Sacrifice your score to crush rivals. Real-time incremental warfare game.">
+    <meta name="description" content="Sacrifice your score to crush rivals. Real-time incremental warfare game.">
     <link rel="icon" href="1778230381094.png" type="image/png">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -12,7 +12,7 @@
         :root { --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0; }
         [data-theme='dark'] { --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #game-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        #game-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; z-index: 5; }
         #header { position: absolute; top: 0; width: 100%; height: 90px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.95; }
         #score-val { font-size: 2rem; color: var(--score); font-weight: 800; }
         .top-btn { position: absolute; top: 15px; z-index: 20; border: none; padding: 8px 12px; border-radius: 15px; cursor: pointer; color: white; font-weight: bold; }
@@ -29,9 +29,11 @@
         #bbs-input-area { padding: 10px; display: flex; gap: 5px; border-top: 1px solid var(--border); }
         #bbs-input { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid var(--border); outline: none; background: var(--bg); color: var(--text); }
         #bbs-send { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; }
-        .modal { position: fixed; top: 90px; bottom: 30vh; left: 0; right: 0; background: var(--bg); z-index: 100; display: none; overflow-y: auto; padding: 20px; }
-        .modal.active { display: block; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); transition: 0.2s; }
+        .modal { position: fixed; top: 0; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg); width: 90%; max-width: 500px; height: 70vh; border-radius: 20px; overflow-y: auto; padding: 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .close-btn { position: sticky; top: 0; float: right; background: #888; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: bold; z-index: 1010; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); }
         .card.can-buy { border-color: var(--accent); cursor: pointer; }
         .card.disabled { opacity: 0.4; filter: grayscale(0.8); cursor: not-allowed; }
         .item-price { font-weight: bold; color: var(--accent); }
@@ -50,23 +52,35 @@
         <button id="shop-toggle" onclick="toggleModal('shop-modal')">UPGRADE SHOP</button>
     </div>
     <div id="bbs-container">
-        <div id="bbs-header"><span id="txt-bbs-label">LIVE CHAT</span><span style="font-size:0.7rem; color:var(--sub);" id="txt-bbs-sub">Public Channel</span></div>
+        <div id="bbs-header"><span>LIVE CHAT</span><span style="font-size:0.7rem; color:var(--sub);">Public Channel</span></div>
         <div id="bbs-messages"></div>
         <div id="bbs-input-area"><input type="text" id="bbs-input" placeholder="..." maxlength="50"><button id="bbs-send" onclick="sendMsg()">Send</button></div>
     </div>
-    <div id="rank-modal" class="modal"><h2 style="text-align:center" id="txt-rank-title">Top 10 Rankings</h2><div id="rank-list"></div></div>
-    <div id="shop-modal" class="modal"><h2 style="text-align:center" id="txt-shop-title">Shop</h2><div id="shop-list"></div></div>
+
+    <div id="rank-modal" class="modal" onclick="closeModals(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="document.getElementById('rank-modal').classList.remove('active')">×</button>
+            <h2 style="text-align:center" id="txt-rank-title">Top 10 Rankings</h2>
+            <div id="rank-list"></div>
+        </div>
+    </div>
+
+    <div id="shop-modal" class="modal" onclick="closeModals(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="document.getElementById('shop-modal').classList.remove('active')">×</button>
+            <h2 style="text-align:center">Upgrade Shop</h2>
+            <div id="shop-list"></div>
+        </div>
+    </div>
 
 <script>
     const lang = (navigator.language || navigator.userLanguage).startsWith('ja') ? 'ja' : 'en';
     const ui = {
-        ja: { shop: "アップグレード", rank: "ランキング上位10名", namePrompt: "名前を入力", atkConfirm: "【警告】資産の50%を失い、相手に20倍の破壊力で攻撃します。よろしいですか？", atkLog: "が禁断の一撃（20倍）を放ちました！", atkSelf: "壊滅的ダメージを与えました！", send: "送信", placeholder: "メッセージ..." },
-        en: { shop: "UPGRADE SHOP", rank: "Top 10 Rankings", namePrompt: "Enter your name", atkConfirm: "[WARNING] Lose 50% of your score for 20x Power strike. Proceed?", atkLog: " unleashed a 20x Power strike!", atkSelf: "Total Annihilation! Damage dealt!", send: "Send", placeholder: "Message..." }
+        ja: { shop: "アップグレード", rank: "ランキング上位10名", namePrompt: "名前を入力", atkConfirm: "【警告】資産の50%を失い、相手に20倍のダメージを与えます。よろしいですか？", atkLog: "が禁断の一撃（20倍）を放ちました！", atkSelf: "ダメージを与えました！", send: "送信", placeholder: "メッセージ..." },
+        en: { shop: "UPGRADE SHOP", rank: "Top 10 Rankings", namePrompt: "Enter name", atkConfirm: "[WARNING] Lose 50% for 20x Strike. Proceed?", atkLog: " unleashed a 20x strike!", atkSelf: "Damage dealt!", send: "Send", placeholder: "Message..." }
     }[lang];
 
-    let lastAttackTime = 0;
-    const COOLDOWN_MS = 25000; // クールタイム 25秒
-
+    let lastAttackTime = 0, COOLDOWN_MS = 25000;
     const firebaseConfig = { apiKey: "AIzaSyAYnC_bHIPYElG8zjbL-7vEIH4rWSA7hbw", authDomain: "my-warfare-game-fa3db.firebaseapp.com", databaseURL: "https://my-warfare-game-fa3db-default-rtdb.firebaseio.com", projectId: "my-warfare-game-fa3db", storageBucket: "my-warfare-game-fa3db.firebasestorage.app", messagingSenderId: "408551026184", appId: "1:408551026184:web:85e80b61c8110ce3d6abbd" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -75,24 +89,8 @@
     localStorage.setItem('warfare_v14_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
 
-    // 施設 16個（バランス調整済み）
     const shopItems = [
-        { name: "Nano Bot", base: 15, p: 0.2 },
-        { name: "Logic Core", base: 100, p: 1.0 },
-        { name: "Siphon", base: 500, p: 8.0 },
-        { name: "Cyber Rig", base: 3000, p: 40.0 },
-        { name: "Mainframe", base: 15000, p: 200.0 },
-        { name: "Mega AI", base: 100000, p: 1500.0 },
-        { name: "Quantum Net", base: 800000, p: 9000.0 },
-        { name: "Neural Cloud", base: 5000000, p: 60000.0 },
-        { name: "Data Citadel", base: 30000000, p: 400000.0 },
-        { name: "Orbital Relay", base: 200000000, p: 2500000.0 },
-        { name: "Galaxy Server", base: 1500000000, p: 18000000.0 },
-        { name: "Time Sphere", base: 10000000000, p: 120000000.0 },
-        { name: "Void Gate", base: 75000000000, p: 900000000.0 },
-        { name: "Star Core", base: 500000000000, p: 7000000000.0 },
-        { name: "Reality Engine", base: 4000000000000, p: 55000000000.0 },
-        { name: "Cosmic Singularity", base: 30000000000000, p: 450000000000.0 }
+        { name: "Nano Bot", base: 15, p: 0.2 }, { name: "Logic Core", base: 100, p: 1.0 }, { name: "Siphon", base: 500, p: 8.0 }, { name: "Cyber Rig", base: 3000, p: 40.0 }, { name: "Mainframe", base: 15000, p: 200.0 }, { name: "Mega AI", base: 100000, p: 1500.0 }, { name: "Quantum Net", base: 800000, p: 9000.0 }, { name: "Neural Cloud", base: 5000000, p: 60000.0 }, { name: "Data Citadel", base: 30000000, p: 400000.0 }, { name: "Orbital Relay", base: 200000000, p: 2500000.0 }, { name: "Galaxy Server", base: 1500000000, p: 18000000.0 }, { name: "Time Sphere", base: 10000000000, p: 120000000.0 }, { name: "Void Gate", base: 75000000000, p: 900000000.0 }, { name: "Star Core", base: 500000000000, p: 7000000000.0 }, { name: "Reality Engine", base: 4000000000000, p: 55000000000.0 }, { name: "Cosmic Singularity", base: 30000000000000, p: 450000000000.0 }
     ];
 
     let score = 0, counts = Array(shopItems.length).fill(0), mps = 0;
@@ -101,12 +99,7 @@
         const d = snap.val();
         if (d) { 
             score = d.score || 0;
-            if(d.counts) {
-                // セーブデータの配列長が足りない場合は補完
-                let newCounts = Array(shopItems.length).fill(0);
-                d.counts.forEach((val, i) => { if(i < shopItems.length) newCounts[i] = val; });
-                counts = newCounts;
-            }
+            if(d.counts) counts = shopItems.map((_, i) => d.counts[i] || 0);
             displayName = d.name || displayName;
             updateUI();
         }
@@ -121,19 +114,40 @@
     function changeName() { const n = prompt(ui.namePrompt, displayName); if (n) { displayName = n; localStorage.setItem('warfare_name', n); save(); } }
     function updateMPS() { mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0); document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)}/s`; }
     document.getElementById('core-btn').onclick = () => { score += 1 + (mps * 0.05); updateUI(); };
-    function toggleModal(id) { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); document.getElementById(id).classList.add('active'); if (id === 'shop-modal') renderShop(); }
-    window.onclick = (e) => { if (e.target.className === 'modal active') e.target.classList.remove('active'); };
-    function buy(i) { const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i])); if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); } }
-    function renderShop() { const container = document.getElementById('shop-list'); container.innerHTML = shopItems.map((item, i) => { const cost = Math.floor(item.base * Math.pow(1.15, counts[i])); return `<div class="card ${score >= cost ? 'can-buy' : 'disabled'}" onclick="buy(${i})"><div style="text-align:left"><b>${item.name} (Lv.${counts[i]})</b><br><small>+${item.p}/s</small></div><div class="item-price">${cost.toLocaleString()}</div></div>`; }).join(''); }
+    
+    function toggleModal(id) {
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if (id === 'shop-modal') renderShop();
+    }
+
+    function closeModals(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
+
+    function buy(i) {
+        const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i]));
+        if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); }
+    }
+
+    function renderShop() {
+        const container = document.getElementById('shop-list');
+        container.innerHTML = shopItems.map((item, i) => {
+            const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
+            return `<div class="card ${score >= cost ? 'can-buy' : 'disabled'}" onclick="buy(${i})">
+                <div style="text-align:left"><b>${item.name} (Lv.${counts[i]})</b><br><small>+${item.p}/s</small></div>
+                <div class="item-price">${cost.toLocaleString()}</div>
+            </div>`;
+        }).join('');
+    }
+
     function updateUI() { document.getElementById('score-val').innerText = Math.floor(score).toLocaleString(); }
     setInterval(() => { score += (mps / 10); updateUI(); }, 100);
     setInterval(save, 5000);
+
     function updateRankList() {
         db.ref('users').orderByChild('score').limitToLast(10).once('value', (snap) => {
             let players = []; snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
             const list = document.getElementById('rank-list'); list.innerHTML = "";
-            const now = Date.now(); const isCD = now - lastAttackTime < COOLDOWN_MS;
-            const remain = Math.ceil((lastAttackTime + COOLDOWN_MS - now) / 1000);
+            const now = Date.now(), isCD = now - lastAttackTime < COOLDOWN_MS, remain = Math.ceil((lastAttackTime + COOLDOWN_MS - now) / 1000);
             players.forEach((p, idx) => {
                 if (p.id === myId) document.getElementById('my-rank').innerText = "Rank: " + (idx + 1);
                 const div = document.createElement('div'); div.className = `card`;
@@ -144,12 +158,13 @@
         });
     }
     db.ref('users').orderByChild('score').limitToLast(10).on('value', updateRankList);
-    setInterval(() => { if(document.getElementById('rank-modal').classList.contains('active')) updateRankList(); }, 1000);
+    setInterval(() => { if(document.querySelector('.modal.active')) updateRankList(); }, 1000);
+
     function attack(tid, tname) {
         const now = Date.now(); if (now - lastAttackTime < COOLDOWN_MS) return;
         if (score < 500) return alert("Score > 500 required.");
         if (!confirm(ui.atkConfirm)) return;
-        lastAttackTime = now; const loss = Math.floor(score / 2); const damage = Math.floor(loss * (2 / 3)) * 20;
+        lastAttackTime = now; const loss = Math.floor(score / 2), damage = Math.floor(loss * (2 / 3)) * 20;
         score -= loss; updateUI();
         db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
         db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} ${ui.atkLog} (Target: ${tname})`, time: Date.now() });
@@ -159,4 +174,3 @@
 </script>
 </body>
 </html>
-
