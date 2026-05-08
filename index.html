@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THE NUMBER: WARFARE</title>
-    
     <meta name="description" content="[JP] 資産を削り、ライバルを叩け。リアルタイム放置型クリック戦争。[EN] Sacrifice your score to crush rivals. Real-time incremental warfare game.">
-    
     <link rel="icon" href="1778230381094.png" type="image/png">
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -49,183 +46,70 @@
     </style>
 </head>
 <body data-theme="light">
-
     <div id="game-container">
-        <div id="header">
-            <div id="score-val">0</div>
-            <div id="mps-val" style="font-size: 0.8rem; color: var(--sub);">GEN: 0/s</div>
-        </div>
-        <div id="user-info">
-            <span id="user-name" onclick="changeName()" style="font-weight:bold; color:var(--accent); cursor:pointer;">Loading...</span>
-            <div id="my-rank">Rank: --</div>
-        </div>
+        <div id="header"><div id="score-val">0</div><div id="mps-val" style="font-size: 0.8rem; color: var(--sub);">GEN: 0/s</div></div>
+        <div id="user-info"><span id="user-name" onclick="changeName()" style="font-weight:bold; color:var(--accent); cursor:pointer;">Loading...</span><div id="my-rank">Rank: --</div></div>
         <button id="rank-toggle" class="top-btn" onclick="toggleModal('rank-modal')">🏆</button>
         <button id="theme-toggle" class="top-btn" onclick="toggleTheme()">🌙</button>
         <button id="core-btn">TAP!!</button>
         <button id="shop-toggle" onclick="toggleModal('shop-modal')">UPGRADE SHOP</button>
     </div>
-
     <div id="bbs-container">
         <div id="bbs-header"><span id="txt-bbs-label">LIVE CHAT</span><span style="font-size:0.7rem; color:var(--sub);" id="txt-bbs-sub">Public Channel</span></div>
         <div id="bbs-messages"></div>
-        <div id="bbs-input-area">
-            <input type="text" id="bbs-input" placeholder="..." maxlength="50">
-            <button id="bbs-send" onclick="sendMsg()">Send</button>
-        </div>
+        <div id="bbs-input-area"><input type="text" id="bbs-input" placeholder="..." maxlength="50"><button id="bbs-send" onclick="sendMsg()">Send</button></div>
     </div>
-
-    <div id="rank-modal" class="modal">
-        <h2 style="text-align:center" id="txt-rank-title">Top 10 Rankings</h2>
-        <div id="rank-list"></div>
-    </div>
-
-    <div id="shop-modal" class="modal">
-        <h2 style="text-align:center" id="txt-shop-title">Shop</h2>
-        <div id="shop-list"></div>
-    </div>
+    <div id="rank-modal" class="modal"><h2 style="text-align:center" id="txt-rank-title">Top 10 Rankings</h2><div id="rank-list"></div></div>
+    <div id="shop-modal" class="modal"><h2 style="text-align:center" id="txt-shop-title">Shop</h2><div id="shop-list"></div></div>
 
 <script>
-    // --- Multilingual Data ---
     const lang = (navigator.language || navigator.userLanguage).startsWith('ja') ? 'ja' : 'en';
     const ui = {
-        ja: {
-            shop: "アップグレード", rank: "ランキング上位10名", namePrompt: "名前を入力", 
-            atkConfirm: "【警告】資産の50%を失い、相手に壊滅的なダメージを与えます。よろしいですか？",
-            atkLog: "が全精力を込めた攻撃を放ちました！", atkSelf: "一撃必殺！ダメージを与えました！",
-            send: "送信", placeholder: "メッセージ..."
-        },
-        en: {
-            shop: "UPGRADE SHOP", rank: "Top 10 Rankings", namePrompt: "Enter your name", 
-            atkConfirm: "[WARNING] Lose 50% of your score to deal devastating damage. Proceed?",
-            atkLog: " unleashed a devastating strike!", atkSelf: "Critical Hit! Damage dealt!",
-            send: "Send", placeholder: "Message..."
-        }
+        ja: { shop: "アップグレード", rank: "ランキング上位10名", namePrompt: "名前を入力", atkConfirm: "【警告】資産の50%を失い、相手に20倍の破壊力で攻撃します。よろしいですか？", atkLog: "が禁断の一撃（20倍）を放ちました！", atkSelf: "壊滅的ダメージを与えました！", send: "送信", placeholder: "メッセージ..." },
+        en: { shop: "UPGRADE SHOP", rank: "Top 10 Rankings", namePrompt: "Enter your name", atkConfirm: "[WARNING] Lose 50% of your score for 20x Power strike. Proceed?", atkLog: " unleashed a 20x Power strike!", atkSelf: "Total Annihilation! Damage dealt!", send: "Send", placeholder: "Message..." }
     }[lang];
 
-    // Apply basic UI
     document.getElementById('shop-toggle').innerText = ui.shop;
     document.getElementById('txt-rank-title').innerText = ui.rank;
-    document.getElementById('txt-shop-title').innerText = "Shop";
     document.getElementById('bbs-send').innerText = ui.send;
     document.getElementById('bbs-input').placeholder = ui.placeholder;
 
-    // --- Firebase Configuration ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyAYnC_bHIPYElG8zjbL-7vEIH4rWSA7hbw",
-        authDomain: "my-warfare-game-fa3db.firebaseapp.com",
-        databaseURL: "https://my-warfare-game-fa3db-default-rtdb.firebaseio.com",
-        projectId: "my-warfare-game-fa3db",
-        storageBucket: "my-warfare-game-fa3db.firebasestorage.app",
-        messagingSenderId: "408551026184",
-        appId: "1:408551026184:web:85e80b61c8110ce3d6abbd"
-    };
+    const firebaseConfig = { apiKey: "AIzaSyAYnC_bHIPYElG8zjbL-7vEIH4rWSA7hbw", authDomain: "my-warfare-game-fa3db.firebaseapp.com", databaseURL: "https://my-warfare-game-fa3db-default-rtdb.firebaseio.com", projectId: "my-warfare-game-fa3db", storageBucket: "my-warfare-game-fa3db.firebasestorage.app", messagingSenderId: "408551026184", appId: "1:408551026184:web:85e80b61c8110ce3d6abbd" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
     localStorage.setItem('warfare_v14_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
+    let score = 0, counts = [0,0,0,0,0,0], mps = 0;
 
-    const shopItems = [
-        { name: "Nano Bot", base: 15, p: 0.2 },
-        { name: "Logic Core", base: 100, p: 1.0 },
-        { name: "Siphon", base: 500, p: 8.0 },
-        { name: "Cyber Rig", base: 3000, p: 40.0 },
-        { name: "Mainframe", base: 15000, p: 200.0 },
-        { name: "Mega AI", base: 100000, p: 1500.0 }
-    ];
-
-    let score = 0, counts = Array(shopItems.length).fill(0), mps = 0;
-
+    // リアルタイム・リスナーの強化：攻撃を受けた際、即座に画面を書き換える
     db.ref('users/' + myId).on('value', (snap) => {
         const d = snap.val();
         if (d) { 
-            if(d.score > score || score === 0) score = d.score || 0;
+            // 相手からの攻撃や施設購入によるスコア変動を即座に反映
+            score = d.score || 0;
             if(d.counts) counts = d.counts;
             displayName = d.name || displayName;
+            updateUI();
         }
         document.getElementById('user-name').innerText = displayName + " ✎";
         updateMPS();
     });
 
-    function save() {
-        db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, mps: Number(mps.toFixed(1)), name: displayName });
-    }
+    const shopItems = [ { name: "Nano Bot", base: 15, p: 0.2 }, { name: "Logic Core", base: 100, p: 1.0 }, { name: "Siphon", base: 500, p: 8.0 }, { name: "Cyber Rig", base: 3000, p: 40.0 }, { name: "Mainframe", base: 15000, p: 200.0 }, { name: "Mega AI", base: 100000, p: 1500.0 } ];
 
-    function sendMsg() {
-        const input = document.getElementById('bbs-input');
-        if (!input.value.trim()) return;
-        db.ref('messages').push({ name: displayName, text: input.value.trim(), time: Date.now() });
-        input.value = "";
-    }
-
-    db.ref('messages').limitToLast(20).on('value', (snap) => {
-        const container = document.getElementById('bbs-messages');
-        container.innerHTML = "";
-        snap.forEach(c => {
-            const m = c.val();
-            container.innerHTML += `<div class="msg"><span class="msg-name">${m.name}:</span><span class="msg-text">${m.text}</span></div>`;
-        });
-        container.scrollTop = container.scrollHeight;
-    });
-
-    function toggleTheme() {
-        const b = document.body;
-        const next = b.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        b.setAttribute('data-theme', next);
-        document.getElementById('theme-toggle').innerText = next === 'light' ? '🌙' : '☀️';
-    }
-
-    function changeName() {
-        const n = prompt(ui.namePrompt, displayName);
-        if (n) { displayName = n; localStorage.setItem('warfare_name', n); save(); }
-    }
-
-    function updateMPS() {
-        mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0);
-        document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)}/s`;
-    }
-
+    function save() { db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, mps: Number(mps.toFixed(1)), name: displayName }); }
+    function sendMsg() { const input = document.getElementById('bbs-input'); if (!input.value.trim()) return; db.ref('messages').push({ name: displayName, text: input.value.trim(), time: Date.now() }); input.value = ""; }
+    db.ref('messages').limitToLast(20).on('value', (snap) => { const container = document.getElementById('bbs-messages'); container.innerHTML = ""; snap.forEach(c => { const m = c.val(); container.innerHTML += `<div class="msg"><span class="msg-name">${m.name}:</span><span class="msg-text">${m.text}</span></div>`; }); container.scrollTop = container.scrollHeight; });
+    function toggleTheme() { const b = document.body; const next = b.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; b.setAttribute('data-theme', next); document.getElementById('theme-toggle').innerText = next === 'light' ? '🌙' : '☀️'; }
+    function changeName() { const n = prompt(ui.namePrompt, displayName); if (n) { displayName = n; localStorage.setItem('warfare_name', n); save(); } }
+    function updateMPS() { mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0); document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)}/s`; }
     document.getElementById('core-btn').onclick = () => { score += 1 + (mps * 0.05); updateUI(); };
-
-    function toggleModal(id) {
-        const t = document.getElementById(id);
-        const active = t.classList.contains('active');
-        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-        if (!active) t.classList.add('active');
-        if (id === 'shop-modal') renderShop();
-    }
-
-    function buy(i) {
-        const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i]));
-        if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); }
-    }
-
-    function renderShop() {
-        const container = document.getElementById('shop-list');
-        container.innerHTML = shopItems.map((item, i) => {
-            const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
-            const canBuy = score >= cost;
-            return `<div class="card ${canBuy ? 'can-buy' : 'disabled'}" onclick="buy(${i})">
-                <div style="text-align:left">
-                    <b>${item.name} (Lv.${counts[i]})</b><br><small>+${item.p}/s</small>
-                </div>
-                <div class="item-price">${cost.toLocaleString()}</div>
-            </div>`;
-        }).join('');
-    }
-
-    function updateUI() { 
-        document.getElementById('score-val').innerText = Math.floor(score).toLocaleString();
-        if (document.getElementById('shop-modal').classList.contains('active')) {
-            const cards = document.querySelectorAll('#shop-list .card');
-            shopItems.forEach((item, i) => {
-                const cost = Math.floor(item.base * Math.pow(1.15, counts[i]));
-                if (score >= cost) { cards[i].classList.add('can-buy'); cards[i].classList.remove('disabled'); }
-                else { cards[i].classList.remove('can-buy'); cards[i].classList.add('disabled'); }
-            });
-        }
-    }
+    function toggleModal(id) { const t = document.getElementById(id); const active = t.classList.contains('active'); document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); if (!active) t.classList.add('active'); if (id === 'shop-modal') renderShop(); }
+    function buy(i) { const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i])); if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); } }
+    function renderShop() { const container = document.getElementById('shop-list'); container.innerHTML = shopItems.map((item, i) => { const cost = Math.floor(item.base * Math.pow(1.15, counts[i])); return `<div class="card ${score >= cost ? 'can-buy' : 'disabled'}" onclick="buy(${i})"><div style="text-align:left"><b>${item.name} (Lv.${counts[i]})</b><br><small>+${item.p}/s</small></div><div class="item-price">${cost.toLocaleString()}</div></div>`; }).join(''); }
+    function updateUI() { document.getElementById('score-val').innerText = Math.floor(score).toLocaleString(); }
 
     setInterval(() => { score += (mps / 10); updateUI(); }, 100);
     setInterval(save, 5000);
@@ -233,15 +117,12 @@
     db.ref('users').orderByChild('score').limitToLast(10).on('value', (snap) => {
         let players = [];
         snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
-        const list = document.getElementById('rank-list');
-        list.innerHTML = "";
+        const list = document.getElementById('rank-list'); list.innerHTML = "";
         const myRankIdx = players.findIndex(p => p.id === myId);
         document.getElementById('my-rank').innerText = "Rank: " + (myRankIdx !== -1 ? myRankIdx + 1 : "10+");
         players.forEach((p, idx) => {
-            const div = document.createElement('div');
-            div.className = `card ${p.id === myId ? 'is-me' : ''}`;
-            div.innerHTML = `<div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score || 0).toLocaleString()}</small></div>
-            ${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}', '${p.name || p.id}')">ATK</button>` : '<span>(YOU)</span>'}`;
+            const div = document.createElement('div'); div.className = `card ${p.id === myId ? 'is-me' : ''}`;
+            div.innerHTML = `<div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score || 0).toLocaleString()}</small></div>${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}', '${p.name || p.id}')">ATK</button>` : '<span>(YOU)</span>'}`;
             list.appendChild(div);
         });
     });
@@ -252,22 +133,20 @@
 
         const loss = Math.floor(score / 2);
         const power = Math.floor(loss * (2 / 3));
-        const damage = power * 10;
+        const damage = power * 20; // 攻撃力を20倍に強化！
 
         score -= loss;
-        db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
+        updateUI(); // 自分の画面を即座に更新
 
-        db.ref('messages').push({ 
-            name: "⚠️SYSTEM", 
-            text: `${displayName} ${ui.atkLog} (Target: ${tname})`, 
-            time: Date.now() 
-        });
+        // 相手のスコアを減らす（Firebase側で計算）
+        db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
+        
+        // ログ送信
+        db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} ${ui.atkLog} (Target: ${tname})`, time: Date.now() });
 
         save();
-        updateUI();
-        alert(ui.atkSelf);
+        alert(ui.atkSelf + " (Total: -" + damage.toLocaleString() + ")");
     }
-
     document.getElementById('bbs-input').onkeypress = (e) => { if (e.key === 'Enter') sendMsg(); };
 </script>
 </body>
