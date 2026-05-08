@@ -9,14 +9,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        :root { 
-            --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; 
-            --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0;
-        }
-        [data-theme='dark'] {
-            --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; 
-            --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333;
-        }
+        :root { --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0; }
+        [data-theme='dark'] { --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #game-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         #header { position: absolute; top: 0; width: 100%; height: 90px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.95; }
@@ -42,6 +36,7 @@
         .card.disabled { opacity: 0.4; filter: grayscale(0.8); cursor: not-allowed; }
         .item-price { font-weight: bold; color: var(--accent); }
         .attack-btn { background: var(--attack); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
+        .attack-btn.cd { background: #555 !important; opacity: 0.6; cursor: not-allowed; }
         #shop-toggle { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 60%; background: var(--score); color: white; border: none; padding: 12px; border-radius: 25px; font-weight: bold; z-index: 15; cursor: pointer; }
     </style>
 </head>
@@ -69,10 +64,8 @@
         en: { shop: "UPGRADE SHOP", rank: "Top 10 Rankings", namePrompt: "Enter your name", atkConfirm: "[WARNING] Lose 50% of your score for 20x Power strike. Proceed?", atkLog: " unleashed a 20x Power strike!", atkSelf: "Total Annihilation! Damage dealt!", send: "Send", placeholder: "Message..." }
     }[lang];
 
-    document.getElementById('shop-toggle').innerText = ui.shop;
-    document.getElementById('txt-rank-title').innerText = ui.rank;
-    document.getElementById('bbs-send').innerText = ui.send;
-    document.getElementById('bbs-input').placeholder = ui.placeholder;
+    let lastAttackTime = 0;
+    const COOLDOWN_MS = 25000; // クールタイム 25秒
 
     const firebaseConfig = { apiKey: "AIzaSyAYnC_bHIPYElG8zjbL-7vEIH4rWSA7hbw", authDomain: "my-warfare-game-fa3db.firebaseapp.com", databaseURL: "https://my-warfare-game-fa3db-default-rtdb.firebaseio.com", projectId: "my-warfare-game-fa3db", storageBucket: "my-warfare-game-fa3db.firebasestorage.app", messagingSenderId: "408551026184", appId: "1:408551026184:web:85e80b61c8110ce3d6abbd" };
     firebase.initializeApp(firebaseConfig);
@@ -81,23 +74,45 @@
     let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
     localStorage.setItem('warfare_v14_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
-    let score = 0, counts = [0,0,0,0,0,0], mps = 0;
 
-    // リアルタイム・リスナーの強化：攻撃を受けた際、即座に画面を書き換える
+    // 施設 16個（バランス調整済み）
+    const shopItems = [
+        { name: "Nano Bot", base: 15, p: 0.2 },
+        { name: "Logic Core", base: 100, p: 1.0 },
+        { name: "Siphon", base: 500, p: 8.0 },
+        { name: "Cyber Rig", base: 3000, p: 40.0 },
+        { name: "Mainframe", base: 15000, p: 200.0 },
+        { name: "Mega AI", base: 100000, p: 1500.0 },
+        { name: "Quantum Net", base: 800000, p: 9000.0 },
+        { name: "Neural Cloud", base: 5000000, p: 60000.0 },
+        { name: "Data Citadel", base: 30000000, p: 400000.0 },
+        { name: "Orbital Relay", base: 200000000, p: 2500000.0 },
+        { name: "Galaxy Server", base: 1500000000, p: 18000000.0 },
+        { name: "Time Sphere", base: 10000000000, p: 120000000.0 },
+        { name: "Void Gate", base: 75000000000, p: 900000000.0 },
+        { name: "Star Core", base: 500000000000, p: 7000000000.0 },
+        { name: "Reality Engine", base: 4000000000000, p: 55000000000.0 },
+        { name: "Cosmic Singularity", base: 30000000000000, p: 450000000000.0 }
+    ];
+
+    let score = 0, counts = Array(shopItems.length).fill(0), mps = 0;
+
     db.ref('users/' + myId).on('value', (snap) => {
         const d = snap.val();
         if (d) { 
-            // 相手からの攻撃や施設購入によるスコア変動を即座に反映
             score = d.score || 0;
-            if(d.counts) counts = d.counts;
+            if(d.counts) {
+                // セーブデータの配列長が足りない場合は補完
+                let newCounts = Array(shopItems.length).fill(0);
+                d.counts.forEach((val, i) => { if(i < shopItems.length) newCounts[i] = val; });
+                counts = newCounts;
+            }
             displayName = d.name || displayName;
             updateUI();
         }
         document.getElementById('user-name').innerText = displayName + " ✎";
         updateMPS();
     });
-
-    const shopItems = [ { name: "Nano Bot", base: 15, p: 0.2 }, { name: "Logic Core", base: 100, p: 1.0 }, { name: "Siphon", base: 500, p: 8.0 }, { name: "Cyber Rig", base: 3000, p: 40.0 }, { name: "Mainframe", base: 15000, p: 200.0 }, { name: "Mega AI", base: 100000, p: 1500.0 } ];
 
     function save() { db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, mps: Number(mps.toFixed(1)), name: displayName }); }
     function sendMsg() { const input = document.getElementById('bbs-input'); if (!input.value.trim()) return; db.ref('messages').push({ name: displayName, text: input.value.trim(), time: Date.now() }); input.value = ""; }
@@ -106,46 +121,39 @@
     function changeName() { const n = prompt(ui.namePrompt, displayName); if (n) { displayName = n; localStorage.setItem('warfare_name', n); save(); } }
     function updateMPS() { mps = counts.reduce((acc, c, i) => acc + (c * shopItems[i].p), 0); document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)}/s`; }
     document.getElementById('core-btn').onclick = () => { score += 1 + (mps * 0.05); updateUI(); };
-    function toggleModal(id) { const t = document.getElementById(id); const active = t.classList.contains('active'); document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); if (!active) t.classList.add('active'); if (id === 'shop-modal') renderShop(); }
+    function toggleModal(id) { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); document.getElementById(id).classList.add('active'); if (id === 'shop-modal') renderShop(); }
+    window.onclick = (e) => { if (e.target.className === 'modal active') e.target.classList.remove('active'); };
     function buy(i) { const cost = Math.floor(shopItems[i].base * Math.pow(1.15, counts[i])); if (score >= cost) { score -= cost; counts[i]++; updateMPS(); renderShop(); save(); } }
     function renderShop() { const container = document.getElementById('shop-list'); container.innerHTML = shopItems.map((item, i) => { const cost = Math.floor(item.base * Math.pow(1.15, counts[i])); return `<div class="card ${score >= cost ? 'can-buy' : 'disabled'}" onclick="buy(${i})"><div style="text-align:left"><b>${item.name} (Lv.${counts[i]})</b><br><small>+${item.p}/s</small></div><div class="item-price">${cost.toLocaleString()}</div></div>`; }).join(''); }
     function updateUI() { document.getElementById('score-val').innerText = Math.floor(score).toLocaleString(); }
-
     setInterval(() => { score += (mps / 10); updateUI(); }, 100);
     setInterval(save, 5000);
-
-    db.ref('users').orderByChild('score').limitToLast(10).on('value', (snap) => {
-        let players = [];
-        snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
-        const list = document.getElementById('rank-list'); list.innerHTML = "";
-        const myRankIdx = players.findIndex(p => p.id === myId);
-        document.getElementById('my-rank').innerText = "Rank: " + (myRankIdx !== -1 ? myRankIdx + 1 : "10+");
-        players.forEach((p, idx) => {
-            const div = document.createElement('div'); div.className = `card ${p.id === myId ? 'is-me' : ''}`;
-            div.innerHTML = `<div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score || 0).toLocaleString()}</small></div>${p.id !== myId ? `<button class="attack-btn" onclick="attack('${p.id}', '${p.name || p.id}')">ATK</button>` : '<span>(YOU)</span>'}`;
-            list.appendChild(div);
+    function updateRankList() {
+        db.ref('users').orderByChild('score').limitToLast(10).once('value', (snap) => {
+            let players = []; snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
+            const list = document.getElementById('rank-list'); list.innerHTML = "";
+            const now = Date.now(); const isCD = now - lastAttackTime < COOLDOWN_MS;
+            const remain = Math.ceil((lastAttackTime + COOLDOWN_MS - now) / 1000);
+            players.forEach((p, idx) => {
+                if (p.id === myId) document.getElementById('my-rank').innerText = "Rank: " + (idx + 1);
+                const div = document.createElement('div'); div.className = `card`;
+                div.innerHTML = `<div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score || 0).toLocaleString()}</small></div>
+                ${p.id !== myId ? `<button class="attack-btn ${isCD ? 'cd' : ''}" onclick="attack('${p.id}', '${(p.name || p.id).replace(/'/g, "\\'")}')">${isCD ? remain + 's' : 'ATK'}</button>` : '<span>(YOU)</span>'}`;
+                list.appendChild(div);
+            });
         });
-    });
-
+    }
+    db.ref('users').orderByChild('score').limitToLast(10).on('value', updateRankList);
+    setInterval(() => { if(document.getElementById('rank-modal').classList.contains('active')) updateRankList(); }, 1000);
     function attack(tid, tname) {
+        const now = Date.now(); if (now - lastAttackTime < COOLDOWN_MS) return;
         if (score < 500) return alert("Score > 500 required.");
         if (!confirm(ui.atkConfirm)) return;
-
-        const loss = Math.floor(score / 2);
-        const power = Math.floor(loss * (2 / 3));
-        const damage = power * 20; // 攻撃力を20倍に強化！
-
-        score -= loss;
-        updateUI(); // 自分の画面を即座に更新
-
-        // 相手のスコアを減らす（Firebase側で計算）
+        lastAttackTime = now; const loss = Math.floor(score / 2); const damage = Math.floor(loss * (2 / 3)) * 20;
+        score -= loss; updateUI();
         db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
-        
-        // ログ送信
         db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} ${ui.atkLog} (Target: ${tname})`, time: Date.now() });
-
-        save();
-        alert(ui.atkSelf + " (Total: -" + damage.toLocaleString() + ")");
+        save(); alert(ui.atkSelf); updateRankList();
     }
     document.getElementById('bbs-input').onkeypress = (e) => { if (e.key === 'Enter') sendMsg(); };
 </script>
