@@ -10,10 +10,10 @@
         :root { --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0; }
         [data-theme='dark'] { --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333; }
         
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
         
-        /* 青い枠（アウトライン）を消去 */
-        * { -webkit-tap-highlight-color: transparent; outline: none !important; user-select: none; }
+        /* アウトライン消去 */
+        * { -webkit-tap-highlight-color: transparent; outline: none !important; user-select: none; box-sizing: border-box; }
 
         #game-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; z-index: 5; }
         #header { position: absolute; top: 0; width: 100%; height: 90px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.95; }
@@ -22,22 +22,25 @@
         #core-btn { width: 160px; height: 160px; border-radius: 50%; background: var(--card); border: 6px solid var(--accent); color: var(--accent); font-size: 1.4rem; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.1); transition: 0.1s; }
         #core-btn:active { transform: scale(0.92); }
 
-        /* タップ演出 (+N) */
+        /* タップ演出 */
         .tap-effect { position: absolute; color: var(--accent); font-weight: bold; pointer-events: none; animation: fadeUp 0.6s ease-out forwards; z-index: 100; font-size: 1.2rem; }
         @keyframes fadeUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-60px); } }
 
-        /* チャット（全画面拡張対応） */
-        #bbs-container { height: 60px; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 2000; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        #bbs-container.expanded { height: 100vh; position: fixed; top: 0; left: 0; right: 0; }
-        #bbs-header { padding: 15px; font-size: 0.8rem; font-weight: bold; background: var(--bg); border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; }
-        #bbs-messages { flex: 1; overflow-y: auto; padding: 15px; display: none; }
+        /* チャットエリア（はみ出し修正版） */
+        #bbs-container { height: 60px; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 2000; transition: 0.3s ease; }
+        #bbs-container.expanded { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            height: 100% !important; /* 全画面 */
+        }
+        #bbs-header { padding: 15px; font-size: 0.8rem; font-weight: bold; background: var(--bg); border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        #bbs-messages { flex: 1; overflow-y: auto; padding: 15px; display: none; background: var(--card); }
         #bbs-container.expanded #bbs-messages { display: block; }
-        #bbs-input-area { padding: 10px; display: none; gap: 8px; border-top: 1px solid var(--border); background: var(--card); padding-bottom: 30px; }
+        #bbs-input-area { padding: 10px; display: none; gap: 8px; border-top: 1px solid var(--border); background: var(--card); padding-bottom: max(10px, env(safe-area-inset-bottom)); }
         #bbs-container.expanded #bbs-input-area { display: flex; }
         #bbs-input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid var(--border); font-size: 16px; background: var(--bg); color: var(--text); }
         #bbs-send { background: var(--accent); color: white; border: none; padding: 0 20px; border-radius: 25px; font-weight: bold; }
 
-        /* モーダル & ショップタブ */
+        /* ショップ・モーダル */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-content { background: var(--bg); width: 90%; max-width: 500px; height: 75vh; border-radius: 25px; padding: 20px; overflow-y: auto; position: relative; }
@@ -47,9 +50,9 @@
         .tab-btn { flex: 1; padding: 10px; border-radius: 12px; border: none; background: var(--border); color: var(--text); font-weight: bold; cursor: pointer; }
         .tab-btn.active { background: var(--accent); color: white; }
 
-        .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); }
+        .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); transition: 0.2s; }
         .card.can-buy { border-color: var(--accent); background: rgba(0, 122, 255, 0.05); }
-        .card.disabled { opacity: 0.5; }
+        .card.disabled { opacity: 0.5; filter: grayscale(0.5); }
         .item-price { font-weight: bold; color: var(--accent); }
 
         .top-btn { position: absolute; top: 15px; z-index: 20; border: none; padding: 10px 15px; border-radius: 15px; color: white; font-weight: bold; }
@@ -116,7 +119,6 @@
 
     let score = 0, currentTab = 'build', lastAttackTime = 0, COOLDOWN_MS = 25000;
 
-    // クリック強化（10個）
     const clickUpgrades = Array.from({length: 10}, (_, i) => ({
         name: `Click Booster T${i+1}`,
         base: Math.pow(10, i + 2),
@@ -124,7 +126,6 @@
         isClick: true
     }));
 
-    // 施設（16個）
     const autoUpgrades = [
         { name: "Nano Bot", base: 15, p: 0.2 }, { name: "Logic Core", base: 100, p: 1.0 }, { name: "Siphon", base: 500, p: 8.0 }, { name: "Cyber Rig", base: 3000, p: 40.0 }, { name: "Mainframe", base: 15000, p: 200.0 }, { name: "Mega AI", base: 100000, p: 1500.0 }, { name: "Quantum Net", base: 800000, p: 9000.0 }, { name: "Neural Cloud", base: 5000000, p: 60000.0 }, { name: "Data Citadel", base: 30000000, p: 400000.0 }, { name: "Orbital Relay", base: 200000000, p: 2500000.0 }, { name: "Galaxy Server", base: 1500000000, p: 18000000.0 }, { name: "Time Sphere", base: 10000000000, p: 120000000.0 }, { name: "Void Gate", base: 75000000000, p: 900000000.0 }, { name: "Star Core", base: 500000000000, p: 7000000000.0 }, { name: "Reality Engine", base: 4000000000000, p: 55000000000.0 }, { name: "Cosmic Singularity", base: 30000000000000, p: 450000000000.0 }
     ];
@@ -153,7 +154,6 @@
         return {mps, clickPower};
     }
 
-    // タップイベント
     document.getElementById('core-btn').addEventListener('click', (e) => {
         const {clickPower} = updateDisplay();
         score += clickPower;
@@ -168,7 +168,6 @@
         setTimeout(() => effect.remove(), 600);
     });
 
-    // ショップ管理
     function setTab(tab) {
         currentTab = tab;
         document.getElementById('tab-build').classList.toggle('active', tab === 'build');
@@ -195,11 +194,16 @@
         if (score >= cost) { score -= cost; counts[i]++; renderShop(); updateDisplay(); save(); }
     }
 
-    // チャット管理
     function toggleChat() {
         const bbs = document.getElementById('bbs-container');
         bbs.classList.toggle('expanded');
         document.getElementById('chat-close-hint').innerText = bbs.classList.contains('expanded') ? '▼ Close' : 'Tap to expand';
+        if(bbs.classList.contains('expanded')) {
+            setTimeout(() => {
+                const msgBox = document.getElementById('bbs-messages');
+                msgBox.scrollTop = msgBox.scrollHeight;
+            }, 100);
+        }
     }
 
     function sendMsg() {
@@ -210,22 +214,21 @@
         input.value = "";
     }
 
-    db.ref('messages').limitToLast(25).on('value', (snap) => {
+    db.ref('messages').limitToLast(30).on('value', (snap) => {
         const container = document.getElementById('bbs-messages');
         container.innerHTML = "";
         snap.forEach(c => {
             const m = c.val();
-            container.innerHTML += `<div style="margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:4px;">
+            container.innerHTML += `<div style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:5px;">
                 <b style="color:var(--accent); font-size:0.8rem;">${m.name}</b><br>${m.text}</div>`;
         });
         container.scrollTop = container.scrollHeight;
     });
 
-    // 共通
     function save() { db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, name: displayName }); }
     function toggleModal(id) { document.getElementById(id).classList.add('active'); if(id==='shop-modal') renderShop(); }
     function closeModals(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
-    function toggleTheme() { const b = document.body; const next = b.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; b.setAttribute('data-theme', next); }
+    function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); }
     function changeName() { const n = prompt("Name?", displayName); if(n) { displayName = n; save(); } }
 
     setInterval(() => { 
@@ -235,7 +238,6 @@
     }, 100);
     setInterval(save, 5000);
 
-    // ランキング
     function updateRankList() {
         db.ref('users').orderByChild('score').limitToLast(10).once('value', (snap) => {
             let players = []; snap.forEach(c => { players.unshift({ id: c.key, ...c.val() }); });
@@ -245,7 +247,7 @@
                 if (p.id === myId) document.getElementById('my-rank').innerText = "Rank: " + (idx + 1);
                 list.innerHTML += `<div class="card">
                     <div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score).toLocaleString()}</small></div>
-                    ${p.id !== myId ? `<button class="attack-btn ${isCD?'cd':''}" onclick="attack('${p.id}','${p.name}')">ATK</button>` : '<span>(YOU)</span>'}
+                    ${p.id !== myId ? `<button class="attack-btn ${isCD?'cd':''}" onclick="attack('${p.id}','${(p.name||p.id).replace(/'/g,"")}')">ATK</button>` : '<span>(YOU)</span>'}
                 </div>`;
             });
         });
