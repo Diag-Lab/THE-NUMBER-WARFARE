@@ -7,31 +7,36 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        :root { --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0; }
+        :root { --bg: #f8faff; --card: #ffffff; --text: #2c2c2e; --sub: #8e8e93; --accent: #007aff; --attack: #ff3b30; --score: #5856d6; --border: #e0e0e0; --reborn: #ff3b30; }
         [data-theme='dark'] { --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333; }
         
         body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
         
-        /* アウトライン消去 */
         * { -webkit-tap-highlight-color: transparent; outline: none !important; user-select: none; box-sizing: border-box; }
 
         #game-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; z-index: 5; }
         #header { position: absolute; top: 0; width: 100%; height: 90px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.95; }
         #score-val { font-size: 2.2rem; color: var(--score); font-weight: 800; }
+        #reborn-info { font-size: 0.8rem; color: var(--reborn); font-weight: bold; margin-bottom: -5px; }
         
+        #btn-wrapper { position: relative; }
         #core-btn { width: 160px; height: 160px; border-radius: 50%; background: var(--card); border: 6px solid var(--accent); color: var(--accent); font-size: 1.4rem; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.1); transition: 0.1s; }
         #core-btn:active { transform: scale(0.92); }
 
-        /* タップ演出 */
+        #reborn-btn {
+            position: absolute; top: -10px; right: -35px;
+            background: var(--reborn); color: white; border: none;
+            padding: 8px 12px; border-radius: 12px; font-size: 0.7rem;
+            font-weight: 900; cursor: pointer; box-shadow: 0 4px 10px rgba(255,0,0,0.3);
+            display: none; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
         .tap-effect { position: absolute; color: var(--accent); font-weight: bold; pointer-events: none; animation: fadeUp 0.6s ease-out forwards; z-index: 100; font-size: 1.2rem; }
         @keyframes fadeUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-60px); } }
 
-        /* チャットエリア（はみ出し修正版） */
         #bbs-container { height: 60px; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 2000; transition: 0.3s ease; }
-        #bbs-container.expanded { 
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            height: 100% !important; /* 全画面 */
-        }
+        #bbs-container.expanded { position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: 100% !important; }
         #bbs-header { padding: 15px; font-size: 0.8rem; font-weight: bold; background: var(--bg); border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         #bbs-messages { flex: 1; overflow-y: auto; padding: 15px; display: none; background: var(--card); }
         #bbs-container.expanded #bbs-messages { display: block; }
@@ -40,7 +45,6 @@
         #bbs-input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid var(--border); font-size: 16px; background: var(--bg); color: var(--text); }
         #bbs-send { background: var(--accent); color: white; border: none; padding: 0 20px; border-radius: 25px; font-weight: bold; }
 
-        /* ショップ・モーダル */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-content { background: var(--bg); width: 90%; max-width: 500px; height: 75vh; border-radius: 25px; padding: 20px; overflow-y: auto; position: relative; }
@@ -53,6 +57,7 @@
         .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--border); transition: 0.2s; }
         .card.can-buy { border-color: var(--accent); background: rgba(0, 122, 255, 0.05); }
         .card.disabled { opacity: 0.5; filter: grayscale(0.5); }
+        .card.reborn-item { border-color: var(--reborn); background: rgba(255, 0, 0, 0.05); }
         .item-price { font-weight: bold; color: var(--accent); }
 
         .top-btn { position: absolute; top: 15px; z-index: 20; border: none; padding: 10px 15px; border-radius: 15px; color: white; font-weight: bold; }
@@ -66,13 +71,19 @@
 
     <div id="game-container">
         <div id="header">
+            <div id="reborn-info">RE:BORN 0</div>
             <div id="score-val">0</div>
             <div id="mps-val" style="font-size: 0.8rem; color: var(--sub);">GEN: 0/s (Click: 1)</div>
         </div>
         <div id="user-info"><span id="user-name" onclick="changeName()" style="cursor:pointer; font-weight:bold; color:var(--accent);">Loading...</span><div id="my-rank">Rank: --</div></div>
-        <button id="rank-toggle" class="top-btn" onclick="toggleModal('rank-modal')">🏆</button>
+        <button id="rank-toggle" class="top-btn" onclick="triggerCheat()">🏆</button>
         <button id="theme-toggle" class="top-btn" onclick="toggleTheme()">🌙</button>
-        <button id="core-btn">TAP!!</button>
+        
+        <div id="btn-wrapper">
+            <button id="core-btn">TAP!!</button>
+            <button id="reborn-btn" onclick="performReborn()">RE:BORN</button>
+        </div>
+
         <button id="shop-toggle" onclick="toggleModal('shop-modal')">UPGRADE SHOP</button>
     </div>
 
@@ -112,31 +123,39 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const badWords = ["死ね", "殺す", "殺害する", "自殺しろ", "消えろ", "くたばれ", "地獄に落ちろ", "バカ", "あほ", "マヌケ", "クズ", "ゴミ", "カス", "無能", "ゴミ人間", "役立たず", "キモい", "不細工", "デブ", "ハゲ", "ブス", "氏ね", "シネ", "ころす", "ばか", "アホ", "最低", "害悪","fuck", "shit", "asshole", "bitch", "bastard", "idiot", "stupid", "dumb", "trash", "garbage", "loser", "suck"];
+    const badWords = ["死ね", "殺す", "バカ", "あほ", "ゴミ", "カス", "fuck", "shit"];
     let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
     localStorage.setItem('warfare_v14_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
 
-    let score = 0, currentTab = 'build', lastAttackTime = 0, COOLDOWN_MS = 25000;
-
-    const clickUpgrades = Array.from({length: 10}, (_, i) => ({
-        name: `Click Booster T${i+1}`,
-        base: Math.pow(10, i + 2),
-        mul: (i + 1) * 2,
-        isClick: true
-    }));
+    let score = 0, rebornCount = 0, currentTab = 'build', lastAttackTime = 0, COOLDOWN_MS = 25000;
+    let cheatCounter = 0, isCheatActive = false;
+    const REBORN_THRESHOLD = 1000000000;
 
     const autoUpgrades = [
-        { name: "Nano Bot", base: 15, p: 0.2 }, { name: "Logic Core", base: 100, p: 1.0 }, { name: "Siphon", base: 500, p: 8.0 }, { name: "Cyber Rig", base: 3000, p: 40.0 }, { name: "Mainframe", base: 15000, p: 200.0 }, { name: "Mega AI", base: 100000, p: 1500.0 }, { name: "Quantum Net", base: 800000, p: 9000.0 }, { name: "Neural Cloud", base: 5000000, p: 60000.0 }, { name: "Data Citadel", base: 30000000, p: 400000.0 }, { name: "Orbital Relay", base: 200000000, p: 2500000.0 }, { name: "Galaxy Server", base: 1500000000, p: 18000000.0 }, { name: "Time Sphere", base: 10000000000, p: 120000000.0 }, { name: "Void Gate", base: 75000000000, p: 900000000.0 }, { name: "Star Core", base: 500000000000, p: 7000000000.0 }, { name: "Reality Engine", base: 4000000000000, p: 55000000000.0 }, { name: "Cosmic Singularity", base: 30000000000000, p: 450000000000.0 }
+        { name: "Nano Bot", base: 15, p: 0.2 }, { name: "Logic Core", base: 100, p: 1.0 }, { name: "Siphon", base: 500, p: 8.0 }, { name: "Cyber Rig", base: 3000, p: 40.0 }, { name: "Mainframe", base: 15000, p: 200.0 }, { name: "Mega AI", base: 100000, p: 1500.0 }, { name: "Quantum Net", base: 800000, p: 9000.0 }, { name: "Neural Cloud", base: 5000000, p: 60000.0 }, { name: "Data Citadel", base: 30000000, p: 400000.0 }, { name: "Orbital Relay", base: 200000000, p: 2500000.0 }, { name: "Galaxy Server", base: 1500000000, p: 18000000.0 }, { name: "Time Sphere", base: 10000000000, p: 120000000.0 }, { name: "Void Gate", base: 75000000000, p: 900000000.0 }, { name: "Star Core", base: 500000000000, p: 7000000000.0 }, { name: "Reality Engine", base: 4000000000000, p: 55000000000.0 }, { name: "Cosmic Singularity", base: 30000000000000, p: 450000000000.0 },
+        { name: "Rebirth Engine", base: 50000000, p: 500000, isReborn: true },
+        { name: "Dimension Ripper", base: 1000000000, p: 15000000, isReborn: true }
     ];
-
+    const clickUpgrades = Array.from({length: 10}, (_, i) => ({ name: `Click Booster T${i+1}`, base: Math.pow(10, i + 2), mul: (i + 1) * 2, isClick: true }));
     const shopItems = [...autoUpgrades, ...clickUpgrades];
     let counts = Array(shopItems.length).fill(0);
+
+    // 隠しハック機能
+    function triggerCheat() {
+        cheatCounter++;
+        if (cheatCounter >= 50 && !isCheatActive) {
+            isCheatActive = true;
+            db.ref('messages').push({ name: "💻SYSTEM", text: "Warning: Illegal access detected.", time: Date.now() });
+            alert("ADMIN HACK ACTIVATED!\nMPS +1,000,000,000");
+        }
+        toggleModal('rank-modal');
+    }
 
     db.ref('users/' + myId).on('value', (snap) => {
         const d = snap.val();
         if (d) { 
-            score = d.score || 0;
+            score = d.score || 0; rebornCount = d.reborn || 0;
             if(d.counts) counts = shopItems.map((_, i) => d.counts[i] || 0);
             displayName = d.name || displayName;
         }
@@ -149,24 +168,35 @@
             if (item.isClick) clickPower += (counts[i] * item.mul);
             else mps += (counts[i] * item.p);
         });
+        if (isCheatActive) mps += 1000000000;
+        const multiplier = 1 + (rebornCount * 0.2);
+        mps *= multiplier; clickPower *= multiplier;
+
         document.getElementById('score-val').innerText = Math.floor(score).toLocaleString();
+        document.getElementById('reborn-info').innerText = `RE:BORN ${rebornCount} (Bonus: +${Math.round(rebornCount * 20)}%)`;
         document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)}/s (Click: ${clickPower.toLocaleString()})`;
+        document.getElementById('reborn-btn').style.display = (score >= REBORN_THRESHOLD) ? "block" : "none";
         return {mps, clickPower};
     }
 
     document.getElementById('core-btn').addEventListener('click', (e) => {
         const {clickPower} = updateDisplay();
-        score += clickPower;
-        updateDisplay();
-        
+        score += clickPower; updateDisplay();
         const effect = document.createElement('div');
         effect.className = 'tap-effect';
         effect.innerText = `+${clickPower.toLocaleString()}`;
-        effect.style.left = `${e.pageX - 20}px`;
-        effect.style.top = `${e.pageY - 20}px`;
-        document.body.appendChild(effect);
-        setTimeout(() => effect.remove(), 600);
+        effect.style.left = `${e.pageX - 20}px`; effect.style.top = `${e.pageY - 20}px`;
+        document.body.appendChild(effect); setTimeout(() => effect.remove(), 600);
     });
+
+    function performReborn() {
+        if (score < REBORN_THRESHOLD) return;
+        if (confirm("RE:BORNを実行しますか？\n・スコアと施設がリセットされます\n・バフを得ます")) {
+            rebornCount++; score = 0; counts = Array(shopItems.length).fill(0);
+            db.ref('messages').push({ name: "🎊REBORN", text: `${displayName}が第${rebornCount}転生を迎えました！`, time: Date.now() });
+            save(); alert("リボーン完了！");
+        }
+    }
 
     function setTab(tab) {
         currentTab = tab;
@@ -180,9 +210,10 @@
         container.innerHTML = shopItems.map((item, i) => {
             const isMatch = (currentTab === 'click' && item.isClick) || (currentTab === 'build' && !item.isClick);
             if(!isMatch) return '';
+            if(item.isReborn && rebornCount === 0) return '';
             const cost = Math.floor(item.base * Math.pow(1.2, counts[i]));
             const canBuy = score >= cost;
-            return `<div class="card ${canBuy ? 'can-buy' : 'disabled'}" onclick="buy(${i})">
+            return `<div class="card ${canBuy ? 'can-buy' : 'disabled'} ${item.isReborn ? 'reborn-item' : ''}" onclick="buy(${i})">
                 <div><b>${item.name}</b> (Lv.${counts[i]})<br><small>${item.isClick ? 'Click +'+item.mul : '+'+item.p+'/s'}</small></div>
                 <div class="item-price">${cost.toLocaleString()}</div>
             </div>`;
@@ -198,18 +229,12 @@
         const bbs = document.getElementById('bbs-container');
         bbs.classList.toggle('expanded');
         document.getElementById('chat-close-hint').innerText = bbs.classList.contains('expanded') ? '▼ Close' : 'Tap to expand';
-        if(bbs.classList.contains('expanded')) {
-            setTimeout(() => {
-                const msgBox = document.getElementById('bbs-messages');
-                msgBox.scrollTop = msgBox.scrollHeight;
-            }, 100);
-        }
+        if(bbs.classList.contains('expanded')) setTimeout(() => { const msgBox = document.getElementById('bbs-messages'); msgBox.scrollTop = msgBox.scrollHeight; }, 100);
     }
 
     function sendMsg() {
         const input = document.getElementById('bbs-input');
-        if (!input.value.trim()) return;
-        if (badWords.some(w => input.value.includes(w))) return alert("Invalid word!");
+        if (!input.value.trim() || badWords.some(w => input.value.includes(w))) return;
         db.ref('messages').push({ name: displayName, text: input.value.trim(), time: Date.now() });
         input.value = "";
     }
@@ -219,23 +244,18 @@
         container.innerHTML = "";
         snap.forEach(c => {
             const m = c.val();
-            container.innerHTML += `<div style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:5px;">
-                <b style="color:var(--accent); font-size:0.8rem;">${m.name}</b><br>${m.text}</div>`;
+            container.innerHTML += `<div style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:5px;"><b style="color:var(--accent); font-size:0.8rem;">${m.name}</b><br>${m.text}</div>`;
         });
         container.scrollTop = container.scrollHeight;
     });
 
-    function save() { db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, name: displayName }); }
+    function save() { db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, name: displayName, reborn: rebornCount }); }
     function toggleModal(id) { document.getElementById(id).classList.add('active'); if(id==='shop-modal') renderShop(); }
     function closeModals(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
     function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); }
     function changeName() { const n = prompt("Name?", displayName); if(n) { displayName = n; save(); } }
 
-    setInterval(() => { 
-        const {mps} = updateDisplay();
-        score += (mps / 10); 
-        updateDisplay(); 
-    }, 100);
+    setInterval(() => { const {mps} = updateDisplay(); score += (mps / 10); updateDisplay(); }, 100);
     setInterval(save, 5000);
 
     function updateRankList() {
@@ -245,22 +265,16 @@
             const isCD = Date.now() - lastAttackTime < COOLDOWN_MS;
             players.forEach((p, idx) => {
                 if (p.id === myId) document.getElementById('my-rank').innerText = "Rank: " + (idx + 1);
-                list.innerHTML += `<div class="card">
-                    <div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score).toLocaleString()}</small></div>
-                    ${p.id !== myId ? `<button class="attack-btn ${isCD?'cd':''}" onclick="attack('${p.id}','${(p.name||p.id).replace(/'/g,"")}')">ATK</button>` : '<span>(YOU)</span>'}
-                </div>`;
+                list.innerHTML += `<div class="card"><div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score).toLocaleString()}</small></div>${p.id !== myId ? `<button class="attack-btn ${isCD?'cd':''}" onclick="attack('${p.id}','${(p.name||p.id).replace(/'/g,"")}')">ATK</button>` : '<span>(YOU)</span>'}</div>`;
             });
         });
     }
     db.ref('users').orderByChild('score').limitToLast(10).on('value', updateRankList);
 
     function attack(tid, tname) {
-        if (Date.now() - lastAttackTime < COOLDOWN_MS) return;
-        if (score < 500) return alert("Low score!");
-        if (!confirm("Attack " + tname + "? (Lose 50% score)")) return;
-        lastAttackTime = Date.now();
-        const damage = Math.floor(score / 2) * 20;
-        score = Math.floor(score / 2);
+        if (Date.now() - lastAttackTime < COOLDOWN_MS || score < 500) return;
+        if (!confirm("Attack " + tname + "?")) return;
+        lastAttackTime = Date.now(); const damage = Math.floor(score / 2) * 20; score = Math.floor(score / 2);
         db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
         db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} attacked ${tname}!`, time: Date.now() });
         save(); updateRankList();
