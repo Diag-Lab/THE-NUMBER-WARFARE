@@ -112,7 +112,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const badWords = ["死ね", "殺す", "バカ", "あほ", "ゴミ", "カス", "fuck", "shit"];
+    const badWords = ["死ね", "殺す", "殺害する", "自殺しろ", "消えろ", "くたばれ", "地獄に落ちろ", "バカ", "あほ", "マヌケ", "クズ", "ゴミ", "カス", "無能", "ゴミ人間", "役立たず", "キモい", "不細工", "デブ", "ハゲ", "ブス", "氏ね", "シネ", "ころす", "ばか", "アホ", "最低", "害悪","fuck", "shit", "asshole", "bitch", "bastard", "idiot", "stupid", "dumb", "trash", "garbage", "loser", "suck"];
     let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
     localStorage.setItem('warfare_v14_id', myId);
     let displayName = localStorage.getItem('warfare_name') || myId;
