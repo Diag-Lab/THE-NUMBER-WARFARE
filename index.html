@@ -11,7 +11,6 @@
         [data-theme='dark'] { --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --sub: #aaa; --accent: #0a84ff; --attack: #ff453a; --score: #bf5af2; --border: #333; }
         
         body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
-        
         * { -webkit-tap-highlight-color: transparent; outline: none !important; user-select: none; box-sizing: border-box; }
 
         #game-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; z-index: 5; }
@@ -75,8 +74,11 @@
             <div id="score-val">0</div>
             <div id="mps-val" style="font-size: 0.8rem; color: var(--sub);">GEN: 0/s (Click: 1)</div>
         </div>
-        <div id="user-info"><span id="user-name" onclick="changeName()" style="cursor:pointer; font-weight:bold; color:var(--accent);">Loading...</span><div id="my-rank">Rank: --</div></div>
-        <button id="rank-toggle" class="top-btn" onclick="triggerCheat()">🏆</button>
+        <div id="user-info">
+            <span id="user-name" onclick="changeName()" style="cursor:pointer; font-weight:bold; color:var(--accent);">User</span>
+            <div id="my-rank">Rank: --</div>
+        </div>
+        <button id="rank-toggle" class="top-btn" onclick="toggleModal('rank-modal')">🏆</button>
         <button id="theme-toggle" class="top-btn" onclick="toggleTheme()">🌙</button>
         
         <div id="btn-wrapper">
@@ -123,13 +125,15 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const badWords = ["死ね", "殺す", "バカ", "あほ", "ゴミ", "カス", "fuck", "shit"];
+    const badWords = ["死ね", "殺す", "バカ", "あほ", "ゴミ", "カス"];
     let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
     localStorage.setItem('warfare_v14_id', myId);
+    
+    // 名前の初期表示をローカルから取得（Loadingを回避）
     let displayName = localStorage.getItem('warfare_name') || myId;
+    document.getElementById('user-name').innerText = displayName;
 
     let score = 0, rebornCount = 0, currentTab = 'build', lastAttackTime = 0, COOLDOWN_MS = 25000;
-    let cheatCounter = 0, isCheatActive = false;
     const REBORN_THRESHOLD = 1000000000;
 
     const autoUpgrades = [
@@ -141,23 +145,13 @@
     const shopItems = [...autoUpgrades, ...clickUpgrades];
     let counts = Array(shopItems.length).fill(0);
 
-    // 隠しハック機能
-    function triggerCheat() {
-        cheatCounter++;
-        if (cheatCounter >= 50 && !isCheatActive) {
-            isCheatActive = true;
-            db.ref('messages').push({ name: "💻SYSTEM", text: "Warning: Illegal access detected.", time: Date.now() });
-            alert("ADMIN HACK ACTIVATED!\nMPS +1,000,000,000");
-        }
-        toggleModal('rank-modal');
-    }
-
     db.ref('users/' + myId).on('value', (snap) => {
         const d = snap.val();
         if (d) { 
             score = d.score || 0; rebornCount = d.reborn || 0;
             if(d.counts) counts = shopItems.map((_, i) => d.counts[i] || 0);
             displayName = d.name || displayName;
+            document.getElementById('user-name').innerText = displayName;
         }
         updateDisplay();
     });
@@ -168,7 +162,7 @@
             if (item.isClick) clickPower += (counts[i] * item.mul);
             else mps += (counts[i] * item.p);
         });
-        if (isCheatActive) mps += 1000000000;
+
         const multiplier = 1 + (rebornCount * 0.2);
         mps *= multiplier; clickPower *= multiplier;
 
@@ -191,7 +185,7 @@
 
     function performReborn() {
         if (score < REBORN_THRESHOLD) return;
-        if (confirm("RE:BORNを実行しますか？\n・スコアと施設がリセットされます\n・バフを得ます")) {
+        if (confirm("RE:BORNを実行しますか？\n・スコアと施設がリセットされます\n・永久バフ(+20%)を得ます")) {
             rebornCount++; score = 0; counts = Array(shopItems.length).fill(0);
             db.ref('messages').push({ name: "🎊REBORN", text: `${displayName}が第${rebornCount}転生を迎えました！`, time: Date.now() });
             save(); alert("リボーン完了！");
@@ -229,7 +223,6 @@
         const bbs = document.getElementById('bbs-container');
         bbs.classList.toggle('expanded');
         document.getElementById('chat-close-hint').innerText = bbs.classList.contains('expanded') ? '▼ Close' : 'Tap to expand';
-        if(bbs.classList.contains('expanded')) setTimeout(() => { const msgBox = document.getElementById('bbs-messages'); msgBox.scrollTop = msgBox.scrollHeight; }, 100);
     }
 
     function sendMsg() {
@@ -249,11 +242,22 @@
         container.scrollTop = container.scrollHeight;
     });
 
-    function save() { db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, name: displayName, reborn: rebornCount }); }
+    function save() { 
+        localStorage.setItem('warfare_name', displayName);
+        db.ref('users/' + myId).update({ score: Math.floor(score), counts: counts, name: displayName, reborn: rebornCount }); 
+    }
     function toggleModal(id) { document.getElementById(id).classList.add('active'); if(id==='shop-modal') renderShop(); }
     function closeModals(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
     function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); }
-    function changeName() { const n = prompt("Name?", displayName); if(n) { displayName = n; save(); } }
+    
+    function changeName() { 
+        const n = prompt("名前を変更しますか？", displayName); 
+        if(n && n.trim().length > 0) { 
+            displayName = n.trim(); 
+            document.getElementById('user-name').innerText = displayName;
+            save(); 
+        } 
+    }
 
     setInterval(() => { const {mps} = updateDisplay(); score += (mps / 10); updateDisplay(); }, 100);
     setInterval(save, 5000);
@@ -273,10 +277,10 @@
 
     function attack(tid, tname) {
         if (Date.now() - lastAttackTime < COOLDOWN_MS || score < 500) return;
-        if (!confirm("Attack " + tname + "?")) return;
+        if (!confirm(tname + "を攻撃しますか？(自分のスコアが半分になります)")) return;
         lastAttackTime = Date.now(); const damage = Math.floor(score / 2) * 20; score = Math.floor(score / 2);
         db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
-        db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} attacked ${tname}!`, time: Date.now() });
+        db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName}が${tname}を攻撃しました！`, time: Date.now() });
         save(); updateRankList();
     }
     document.getElementById('bbs-input').onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
