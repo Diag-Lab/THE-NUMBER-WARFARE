@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -17,6 +17,8 @@
         #header { position: absolute; top: 0; width: 100%; height: 90px; background: var(--card); border-bottom: 1px solid var(--border); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.95; }
         #score-val { font-size: 2.2rem; color: var(--score); font-weight: 800; }
         #reborn-info { font-size: 0.8rem; color: var(--reborn); font-weight: bold; margin-bottom: -5px; }
+        /* ここを修正しました */
+        #season-info { font-size: 0.85rem; color: var(--sub); margin-top: 5px; padding: 0 10px; }
         
         #btn-wrapper { position: relative; }
         #core-btn { width: 160px; height: 160px; border-radius: 50%; background: var(--card); border: 6px solid var(--accent); color: var(--accent); font-size: 1.4rem; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.1); transition: 0.1s; }
@@ -70,9 +72,9 @@
 
     <div id="game-container">
         <div id="header">
+            <div id="season-info">Season 1: Calculating...</div>
             <div id="reborn-info">RE:BORN 0</div>
             <div id="score-val">0</div>
-            <div id="mps-val" style="font-size: 0.8rem; color: var(--sub);">GEN: 0/s (Click: 1)</div>
         </div>
         <div id="user-info">
             <span id="user-name" onclick="changeName()" style="cursor:pointer; font-weight:bold; color:var(--accent);">User</span>
@@ -125,11 +127,10 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const badWords = ["死ね", "殺す", "バカ", "あほ", "ゴミ", "カス"];
+    const badWords = ["damn", "hell", "fuck", "shit", "idiot"];
     let myId = localStorage.getItem('warfare_v14_id') || "U-" + Math.random().toString(36).substring(2, 7).toUpperCase();
     localStorage.setItem('warfare_v14_id', myId);
     
-    // 名前の初期表示をローカルから取得（Loadingを回避）
     let displayName = localStorage.getItem('warfare_name') || myId;
     document.getElementById('user-name').innerText = displayName;
 
@@ -144,6 +145,24 @@
     const clickUpgrades = Array.from({length: 10}, (_, i) => ({ name: `Click Booster T${i+1}`, base: Math.pow(10, i + 2), mul: (i + 1) * 2, isClick: true }));
     const shopItems = [...autoUpgrades, ...clickUpgrades];
     let counts = Array(shopItems.length).fill(0);
+
+    // シーズンの残り時間を計算して表示
+    function updateRemainingDays() {
+        const startDate = new Date("2026-06-15T00:00:00Z").getTime();
+        const duration = 14 * 24 * 60 * 60 * 1000;
+        const endDate = startDate + duration;
+        const now = Date.now();
+        const timeLeft = endDate - now;
+        
+        if (timeLeft <= 0) {
+            document.getElementById('season-info').innerText = "Season 1: Ended";
+        } else {
+            const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+            document.getElementById('season-info').innerText = `Season 1: ${daysLeft} days remaining`;
+        }
+    }
+    setInterval(updateRemainingDays, 60000);
+    updateRemainingDays();
 
     db.ref('users/' + myId).on('value', (snap) => {
         const d = snap.val();
@@ -168,7 +187,10 @@
 
         document.getElementById('score-val').innerText = Math.floor(score).toLocaleString();
         document.getElementById('reborn-info').innerText = `RE:BORN ${rebornCount} (Bonus: +${Math.round(rebornCount * 20)}%)`;
-        document.getElementById('mps-val').innerText = `GEN: ${mps.toFixed(1)}/s (Click: ${clickPower.toLocaleString()})`;
+        // ここが空だとエラーになる可能性があったため念のためID確認：修正対象外ですが動作に必要なためそのまま
+        const mpsEl = document.getElementById('mps-val');
+        if(mpsEl) mpsEl.innerText = `GEN: ${mps.toFixed(1)}/s (Click: ${clickPower.toLocaleString()})`;
+        
         document.getElementById('reborn-btn').style.display = (score >= REBORN_THRESHOLD) ? "block" : "none";
         return {mps, clickPower};
     }
@@ -185,10 +207,10 @@
 
     function performReborn() {
         if (score < REBORN_THRESHOLD) return;
-        if (confirm("RE:BORNを実行しますか？\n・スコアと施設がリセットされます\n・永久バフ(+20%)を得ます")) {
+        if (confirm("Perform RE:BORN?\n・Score and buildings will be reset\n・Gain a permanent buff (+20%)")) {
             rebornCount++; score = 0; counts = Array(shopItems.length).fill(0);
-            db.ref('messages').push({ name: "🎊REBORN", text: `${displayName}が第${rebornCount}転生を迎えました！`, time: Date.now() });
-            save(); alert("リボーン完了！");
+            db.ref('messages').push({ name: "🎊REBORN", text: `${displayName} reached rebirth level ${rebornCount}!`, time: Date.now() });
+            save(); alert("Reborn complete!");
         }
     }
 
@@ -227,7 +249,7 @@
 
     function sendMsg() {
         const input = document.getElementById('bbs-input');
-        if (!input.value.trim() || badWords.some(w => input.value.includes(w))) return;
+        if (!input.value.trim() || badWords.some(w => input.value.toLowerCase().includes(w))) return;
         db.ref('messages').push({ name: displayName, text: input.value.trim(), time: Date.now() });
         input.value = "";
     }
@@ -251,7 +273,7 @@
     function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); }
     
     function changeName() { 
-        const n = prompt("名前を変更しますか？", displayName); 
+        const n = prompt("Change your name:", displayName); 
         if(n && n.trim().length > 0) { 
             displayName = n.trim(); 
             document.getElementById('user-name').innerText = displayName;
@@ -261,6 +283,10 @@
 
     setInterval(() => { const {mps} = updateDisplay(); score += (mps / 10); updateDisplay(); }, 100);
     setInterval(save, 5000);
+    
+    setInterval(() => {
+        db.ref('messages').push({ name: "⚠️SYSTEM", text: `Season 1 is ongoing! Top 3 receive special badges (👑, 🥈, 🥉) at the end!`, time: Date.now() });
+    }, 3600000);
 
     function updateRankList() {
         db.ref('users').orderByChild('score').limitToLast(10).once('value', (snap) => {
@@ -269,7 +295,8 @@
             const isCD = Date.now() - lastAttackTime < COOLDOWN_MS;
             players.forEach((p, idx) => {
                 if (p.id === myId) document.getElementById('my-rank').innerText = "Rank: " + (idx + 1);
-                list.innerHTML += `<div class="card"><div><b>#${idx+1} ${p.name || p.id}</b><br><small>${Math.floor(p.score).toLocaleString()}</small></div>${p.id !== myId ? `<button class="attack-btn ${isCD?'cd':''}" onclick="attack('${p.id}','${(p.name||p.id).replace(/'/g,"")}')">ATK</button>` : '<span>(YOU)</span>'}</div>`;
+                const badge = p.badge || "";
+                list.innerHTML += `<div class="card"><div><b>#${idx+1} ${badge} ${p.name || p.id}</b><br><small>${Math.floor(p.score).toLocaleString()}</small></div>${p.id !== myId ? `<button class="attack-btn ${isCD?'cd':''}" onclick="attack('${p.id}','${(p.name||p.id).replace(/'/g,"")}')">ATK</button>` : '<span>(YOU)</span>'}</div>`;
             });
         });
     }
@@ -277,14 +304,13 @@
 
     function attack(tid, tname) {
         if (Date.now() - lastAttackTime < COOLDOWN_MS || score < 500) return;
-        if (!confirm(tname + "を攻撃しますか？(自分のスコアが半分になります)")) return;
+        if (!confirm("Attack " + tname + "? (Your score will be halved)")) return;
         lastAttackTime = Date.now(); const damage = Math.floor(score / 2) * 20; score = Math.floor(score / 2);
         db.ref('users/' + tid + '/score').transaction(s => Math.max(0, (s || 0) - damage));
-        db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName}が${tname}を攻撃しました！`, time: Date.now() });
+        db.ref('messages').push({ name: "⚠️SYSTEM", text: `${displayName} attacked ${tname}!`, time: Date.now() });
         save(); updateRankList();
     }
     document.getElementById('bbs-input').onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
 </script>
 </body>
 </html>
-
